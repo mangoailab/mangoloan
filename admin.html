@@ -216,9 +216,9 @@
         showAccess("User found. Checking admins table...", "info");
 
         const { data: adminRow, error: adminError } = await supabase
-          .from("admins")
+          .from("admin_users")
           .select("*")
-          .eq("auth_user_id", user.id)
+          .eq("user_id", user.id)
           .maybeSingle();
 
         if (adminError) {
