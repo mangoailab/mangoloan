@@ -200,7 +200,7 @@
 
     <div id="loadingCard" class="card">
       <h2>Checking access...</h2>
-      <div id="accessStatus" class="status info">Starting admin check...</div>
+      <div id="accessStatus" class="status info">Checking login session…</div>
       <div class="muted">If something is wrong, the status above explains it.</div>
     </div>
 
@@ -342,6 +342,17 @@
   </div>
 
   <script>
+(function () {
+    if (!window.supabase || typeof window.supabase.createClient !== "function") {
+      var st = document.getElementById("accessStatus");
+      if (st) {
+        st.className = "status error";
+        st.textContent =
+          "Supabase client did not load (blocked or offline). Check internet and ad blockers. If you opened admin.html as file://, run a local server (e.g. npx serve .) and open http://localhost:3000/admin.html instead. Then hard-refresh (Ctrl+Shift+R).";
+      }
+      return;
+    }
+
     const supabaseUrl = "https://ensuvkedfzepbpipivgp.supabase.co";
     const supabaseKey = "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW";
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -861,6 +872,7 @@
     });
 
     checkAdminAccess();
+})();
   </script>
 </body>
 </html>
