@@ -303,6 +303,12 @@
         <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
       </div>
       <p id="staffAuthMsg" class="muted" style="margin-top:12px;"></p>
+      <div id="staffGateExtra" class="hidden" style="margin-top:14px;">
+        <div class="actions" style="flex-wrap:wrap; gap:8px;">
+          <button type="button" id="staffGateSignOutBtn" class="primary">Sign out</button>
+          <a href="borrower.html" class="file-label" style="text-decoration:none;">Borrower portal</a>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -569,12 +575,49 @@
       }
     });
 
-    function showStaffAuthGate(message) {
+    function showStaffAuthGate(message, options) {
+      options = options || {};
       document.getElementById("staffResetCard").classList.add("hidden");
       document.getElementById("authGate").classList.remove("hidden");
       document.getElementById("appShell").classList.add("hidden");
-      const el = document.getElementById("staffAuthMsg");
-      el.textContent = message || "";
+      document.getElementById("staffAuthMsg").textContent = message || "";
+      var extra = document.getElementById("staffGateExtra");
+      if (options.showSignOut) {
+        extra.classList.remove("hidden");
+      } else {
+        extra.classList.add("hidden");
+      }
+    }
+
+    async function userIsStaffAdmin(userId) {
+      if (!userId) return false;
+      const { data, error } = await supabaseClient
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (error) {
+        console.warn("admin_users check:", error.message || error);
+        return false;
+      }
+      return !!data;
+    }
+
+    async function showStaffAppIfAuthorized() {
+      var session = (await supabaseClient.auth.getSession()).data.session;
+      if (!session) {
+        showStaffAuthGate("");
+        return;
+      }
+      if (await userIsStaffAdmin(session.user.id)) {
+        showStaffApp();
+        await loadAllData();
+        return;
+      }
+      showStaffAuthGate(
+        "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal.",
+        { showSignOut: true }
+      );
     }
 
     function showStaffPasswordResetCard() {
@@ -640,8 +683,7 @@
         return;
       }
       if (session) {
-        showStaffApp();
-        await loadAllData();
+        await showStaffAppIfAuthorized();
         return;
       }
       showStaffAuthGate("");
@@ -704,9 +746,19 @@
       try {
         history.replaceState(null, "", staffResetRedirectUrl());
       } catch (e) {}
-      showStaffApp();
-      await loadAllData();
-      showMessage("Password updated. You are signed in.");
+      var sess = (await supabaseClient.auth.getSession()).data.session;
+      if (sess && (await userIsStaffAdmin(sess.user.id))) {
+        showStaffApp();
+        await loadAllData();
+        showMessage("Password updated. You are signed in.");
+      } else if (sess) {
+        showStaffAuthGate(
+          "Password updated, but this account is not in admin_users. Ask an administrator to add your user, or sign out and use a staff account.",
+          { showSignOut: true }
+        );
+      } else {
+        showStaffAuthGate("Password updated. Please sign in.");
+      }
     }
 
     const state = {
@@ -1440,8 +1492,21 @@
         msg.textContent = error.message;
         return;
       }
+      var session = (await supabaseClient.auth.getSession()).data.session;
+      if (!session || !(await userIsStaffAdmin(session.user.id))) {
+        showStaffAuthGate(
+          "Signed in, but this user is not in admin_users. Only staff accounts listed there can use this dashboard.",
+          { showSignOut: true }
+        );
+        return;
+      }
       showStaffApp();
       await loadAllData();
+    });
+
+    document.getElementById("staffGateSignOutBtn").addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      showStaffAuthGate("");
     });
 
     document.getElementById("staffForgotPasswordBtn").addEventListener("click", sendStaffPasswordResetEmail);

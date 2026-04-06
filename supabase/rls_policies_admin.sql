@@ -99,3 +99,10 @@ create policy "payments_borrower_select"
       where l.id = loan_id and b.auth_user_id = auth.uid()
     )
   );
+
+-- ---------- admin_users (client can verify own row for staff gate on admin.html) ----------
+-- Each user may read only their own row. Borrowers get zero rows; staff get one row.
+drop policy if exists "admin_users_self_read" on public.admin_users;
+create policy "admin_users_self_read"
+  on public.admin_users for select to authenticated
+  using (user_id = auth.uid());
