@@ -6,217 +6,308 @@
   <title>Mango Loan Admin</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { box-sizing: border-box; }
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --accent: #0f172a;
+      --soft: #f1f5f9;
+      --danger: #b91c1c;
+      --danger-bg: #fee2e2;
+      --ok: #166534;
+      --ok-bg: #dcfce7;
+    }
 
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f5f7fb;
-      color: #1f2937;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
     }
 
-    .wrap {
-      max-width: 960px;
+    .container {
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 24px 16px 40px;
-    }
-
-    h1 {
-      margin: 0 0 20px;
-      font-size: 28px;
-    }
-
-    h2 {
-      margin: 0 0 14px;
-      font-size: 20px;
-    }
-
-    h3 {
-      margin: 18px 0 10px;
-      font-size: 16px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 18px;
-      margin-bottom: 18px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin: 12px 0 6px;
-    }
-
-    input, button, select, textarea {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 15px;
-    }
-
-    input, select, textarea {
-      border: 1px solid #d1d5db;
-      background: #fff;
-    }
-
-    textarea {
-      min-height: 72px;
-      resize: vertical;
-    }
-
-    button {
-      border: none;
-      background: #111827;
-      color: white;
-      cursor: pointer;
-      margin-top: 14px;
-    }
-
-    button:hover {
-      opacity: 0.92;
-    }
-
-    .secondary {
-      background: #6b7280;
-    }
-
-    .status {
-      margin-top: 12px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      white-space: pre-wrap;
-    }
-
-    .error {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .success {
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .info {
-      background: #e0f2fe;
-      color: #075985;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .muted {
-      color: #6b7280;
-      font-size: 14px;
-      margin-top: 6px;
+      padding: 20px;
+      padding-bottom: 40px;
     }
 
     .topbar {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 18px;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
       flex-wrap: wrap;
     }
 
-    .small-btn {
-      width: auto;
-      padding: 10px 14px;
+    h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.1; }
+    h3 { margin: 0 0 14px; font-size: 20px; }
+    h4 { margin: 22px 0 10px; font-size: 16px; font-weight: 700; }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 640px;
     }
+
+    .subtitle a {
+      color: var(--text);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .actions, .login-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .login-actions { margin-top: 4px; }
+
+    button, .file-label {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 14px;
+      min-height: 44px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      width: auto;
+    }
+
+    button.primary, .file-label.primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    button:hover, .file-label:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+
+    .card.banner-danger {
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+
+    .card label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin: 14px 0 6px;
+      color: var(--text);
+    }
+
+    .card > h3 + p.muted { margin-top: 0; margin-bottom: 12px; }
+
+    .card > button[type="button"]:not(.tab-btn) {
+      margin-top: 14px;
+      width: 100%;
+    }
+
+    .card .table-wrap + h4,
+    .card .table-wrap + button { margin-top: 18px; }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      min-height: 44px;
+      font-size: 16px;
+      background: white;
+      color: var(--text);
+    }
+
+    textarea { min-height: 96px; resize: vertical; }
+
+    .muted { color: var(--muted); font-size: 14px; }
+    .message-slot { margin-top: 12px; }
+    .hidden { display: none; }
+
+    .status {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      white-space: pre-wrap;
+      border: 1px solid var(--line);
+    }
+
+    .status.error {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border-color: #fecaca;
+    }
+
+    .status.success {
+      background: var(--ok-bg);
+      color: var(--ok);
+      border-color: #bbf7d0;
+    }
+
+    .status.info {
+      background: #eff6ff;
+      color: #1e3a8a;
+      border-color: #bfdbfe;
+    }
+
+    .login-actions button { margin-top: 0; min-height: 44px; }
 
     .row-actions {
       display: flex;
-      gap: 8px;
+      gap: 10px;
+      align-items: center;
       flex-wrap: wrap;
     }
 
     .row-actions button {
       margin-top: 0;
       padding: 8px 12px;
+      min-height: auto;
       font-size: 13px;
     }
 
     .table-wrap {
       overflow-x: auto;
       margin-top: 12px;
+      -webkit-overflow-scrolling: touch;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 14px;
+      background: white;
+      min-width: 760px;
     }
 
     th, td {
       text-align: left;
-      padding: 10px 8px;
-      border-bottom: 1px solid #e5e7eb;
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 14px;
     }
 
     th {
-      color: #6b7280;
-      font-weight: 600;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
     }
 
-    .login-actions {
+    .tabs {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      margin-top: 8px;
+      margin-bottom: 16px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 20;
+      padding: 6px 0 12px;
     }
 
-    .login-actions button {
-      width: auto;
+    .tab-btn { margin-top: 0; }
+    .tab-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
     }
 
-    .admin-tabs {
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    #notAdminHelp pre {
+      margin: 0 0 12px;
+      padding: 12px 14px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      font-size: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    #notAdminSql {
+      background: #f0fdf4 !important;
+      border-color: #bbf7d0 !important;
+    }
+
+    code {
+      font-size: 13px;
+      background: var(--soft);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .toolbar {
+      margin-bottom: 16px;
       display: flex;
-      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
       flex-wrap: wrap;
-      margin-bottom: 18px;
     }
 
-    .admin-tab-btn {
-      width: auto;
-      margin-top: 0;
-      padding: 10px 18px;
-      background: #e5e7eb;
-      color: #1f2937;
-    }
-
-    .admin-tab-btn:hover {
-      opacity: 0.95;
-    }
-
-    .admin-tab-btn.active {
-      background: #111827;
-      color: #fff;
-    }
-
-    .admin-tab-panel {
-      display: none;
-    }
-
-    .admin-tab-panel.active {
-      display: block;
+    @media (max-width: 640px) {
+      .container { padding: 14px; padding-bottom: 28px; }
+      h1 { font-size: 26px; }
+      .card { padding: 16px; border-radius: 18px; }
+      .tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 10px;
+      }
+      .tab-btn { white-space: nowrap; }
+      th, td { padding: 12px 10px; }
+      table { min-width: 700px; }
+      .toolbar > * { width: 100%; max-width: 100%; }
+      .toolbar button { width: auto; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="container">
     <div class="topbar">
-      <h1>Admin Dashboard</h1>
-      <button id="signOutBtn" class="secondary small-btn hidden">Sign Out</button>
+      <div>
+        <h1>Mango Loan Admin</h1>
+        <div class="subtitle">Staff tools for borrowers, loans, and payments. Same Supabase project as the <a href="index.html">loan tracker</a>.</div>
+      </div>
+      <div class="actions">
+        <a href="index.html" class="file-label">Loan tracker</a>
+        <a href="borrower.html" class="file-label">Borrower portal</a>
+        <button id="signOutBtn" type="button" class="hidden">Sign Out</button>
+      </div>
     </div>
 
     <div id="authCard" class="card hidden">
-      <h2>Admin sign in</h2>
+      <h3>Admin sign in</h3>
       <p class="muted">This page is for <strong>staff</strong> only. Borrower sign-in is on <a href="borrower.html">borrower.html</a>.</p>
       <p class="muted">Your login must exist in Supabase Auth and your user id must be in the <code>admin_users</code> table (<code>user_id</code> = your auth UUID).</p>
       <form id="loginForm" action="#" method="post">
@@ -225,58 +316,58 @@
         <label for="loginPassword">Password</label>
         <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" />
         <div class="login-actions">
-          <button id="loginBtn" type="submit">Sign In</button>
-          <button id="adminForgotPasswordBtn" type="button" class="secondary small-btn">Forgot password</button>
+          <button id="loginBtn" type="submit" class="primary">Sign In</button>
+          <button id="adminForgotPasswordBtn" type="button">Forgot password</button>
         </div>
       </form>
       <div id="loginMsg" class="muted" style="margin-top:12px;"></div>
     </div>
 
     <div id="adminPasswordResetCard" class="card hidden">
-      <h2>Set new admin password</h2>
+      <h3>Set new admin password</h3>
       <p class="muted">You opened a password reset link. Choose a new password, then you will continue to admin access if your account is in <code>admin_users</code>.</p>
       <label for="adminNewPassword">New password</label>
       <input id="adminNewPassword" type="password" autocomplete="new-password" placeholder="New password" />
       <label for="adminConfirmPassword">Confirm password</label>
       <input id="adminConfirmPassword" type="password" autocomplete="new-password" placeholder="Confirm new password" />
-      <button id="saveAdminPasswordBtn" type="button">Save password</button>
+      <button id="saveAdminPasswordBtn" type="button" class="primary">Save password</button>
       <div id="adminResetMsg" class="muted" style="margin-top:12px;"></div>
     </div>
 
     <div id="loadingCard" class="card">
-      <h2>Checking access...</h2>
+      <h3>Checking access…</h3>
       <div id="accessStatus" class="status info">Checking login session…</div>
       <div class="muted">If something is wrong, the status above explains it.</div>
-      <div id="notAdminHelp" class="hidden" style="margin-top:18px;padding-top:16px;border-top:1px solid #e5e7eb;">
+      <div id="notAdminHelp" class="hidden" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line);">
         <p style="margin:0 0 8px;font-weight:600;">Fix: add this account to <code>admin_users</code></p>
         <p class="muted" style="margin:0 0 6px;">Signed in as <span id="notAdminEmail"></span>. Your Auth user id must appear in <code>admin_users.user_id</code>:</p>
         <pre id="notAdminUserId" style="margin:0 0 12px;padding:12px;background:#f3f4f6;border-radius:8px;font-size:13px;overflow-x:auto;word-break:break-all;"></pre>
         <p class="muted" style="margin:0 0 6px;">In Supabase → <strong>SQL Editor</strong>, run (table/column names must match your project):</p>
         <pre id="notAdminSql" style="margin:0 0 12px;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;overflow-x:auto;white-space:pre-wrap;"></pre>
-        <button type="button" id="retryAdminCheckBtn" class="secondary small-btn" style="width:auto;margin-top:0;">I fixed it in Supabase — check again</button>
+        <button type="button" id="retryAdminCheckBtn" style="margin-top:12px;">I fixed it in Supabase — check again</button>
         <p class="muted" style="margin:12px 0 0;">The app looks for <code>admin_users.user_id</code> = your Auth id. If your table uses <code>auth_user_id</code> instead, we try that too after you add the row.</p>
       </div>
     </div>
 
     <div id="adminPanel" class="hidden">
-      <div id="dataLoadBanner" class="card hidden" style="border:1px solid #fecaca;background:#fef2f2;">
+      <div id="dataLoadBanner" class="card banner-danger hidden">
         <strong>Data load issue</strong>
         <div id="dataLoadBannerText" class="muted" style="margin-top:8px;"></div>
       </div>
 
       <div class="card">
-        <h2>Admin session</h2>
+        <h3>Admin session</h3>
         <div id="sessionInfo" class="status info">Loading session...</div>
       </div>
 
-      <div class="admin-tabs">
-        <button type="button" class="admin-tab-btn active" data-admin-tab="workspace">Workspace</button>
-        <button type="button" class="admin-tab-btn" data-admin-tab="edit-borrower">Edit borrower</button>
+      <div class="tabs">
+        <button type="button" class="tab-btn active" data-admin-tab="workspace">Workspace</button>
+        <button type="button" class="tab-btn" data-admin-tab="edit-borrower">Edit borrower</button>
       </div>
 
-      <div class="admin-tab-panel active" data-admin-tab="workspace">
+      <div class="tab-panel active" data-admin-tab="workspace">
       <div class="card">
-        <h2>Create borrower</h2>
+        <h3>Create borrower</h3>
 
         <label for="borrowerName">Name</label>
         <input id="borrowerName" type="text" placeholder="Borrower name" />
@@ -293,12 +384,12 @@
         <label for="borrowerNotes">Notes</label>
         <textarea id="borrowerNotes" placeholder="Notes (optional)"></textarea>
 
-        <button id="createBorrowerBtn" type="button">Create borrower</button>
+        <button id="createBorrowerBtn" type="button" class="primary">Create borrower</button>
         <div id="borrowerMsg"></div>
       </div>
 
       <div class="card">
-        <h2>Create loan</h2>
+        <h3>Create loan</h3>
 
         <label for="loanBorrowerSelect">Borrower</label>
         <select id="loanBorrowerSelect">
@@ -320,12 +411,12 @@
         <label for="loanNotes">Notes</label>
         <textarea id="loanNotes" placeholder="Notes (optional)"></textarea>
 
-        <button id="createLoanBtn" type="button">Create loan</button>
+        <button id="createLoanBtn" type="button" class="primary">Create loan</button>
         <div id="loanMsg"></div>
       </div>
 
       <div class="card">
-        <h2>Record payment</h2>
+        <h3>Record payment</h3>
         <label for="addPaymentLoan">Loan</label>
         <select id="addPaymentLoan">
           <option value="">Select loan</option>
@@ -343,14 +434,16 @@
         </select>
         <label for="addPaymentNotes">Notes</label>
         <textarea id="addPaymentNotes" placeholder="Optional"></textarea>
-        <button id="addPaymentBtn" type="button">Add payment</button>
+        <button id="addPaymentBtn" type="button" class="primary">Add payment</button>
         <div id="addPaymentMsg"></div>
       </div>
 
       <div class="card">
-        <h2>Payments</h2>
-        <p class="muted">Edit recorded payments. Use Refresh after changes elsewhere.</p>
-        <button id="refreshDataBtn" type="button" class="secondary small-btn" style="width:auto;">Refresh list</button>
+        <h3>Payments</h3>
+        <div class="toolbar">
+          <p class="muted" style="margin:0;">Edit recorded payments. Use Refresh after changes elsewhere.</p>
+          <button id="refreshDataBtn" type="button">Refresh list</button>
+        </div>
 
         <div class="table-wrap">
           <table>
@@ -367,7 +460,7 @@
           </table>
         </div>
 
-        <h3>Edit payment</h3>
+        <h4>Edit payment</h4>
         <label for="editPaymentSelect">Payment</label>
         <select id="editPaymentSelect">
           <option value="">Select a payment</option>
@@ -395,14 +488,14 @@
         <label for="editPaymentNotes">Notes</label>
         <textarea id="editPaymentNotes" placeholder="Notes"></textarea>
 
-        <button id="savePaymentBtn" type="button">Save payment</button>
+        <button id="savePaymentBtn" type="button" class="primary">Save payment</button>
         <div id="paymentMsg"></div>
       </div>
       </div>
 
-      <div class="admin-tab-panel" data-admin-tab="edit-borrower">
+      <div class="tab-panel" data-admin-tab="edit-borrower">
         <div class="card">
-          <h2>Edit borrower</h2>
+          <h3>Edit borrower</h3>
           <p class="muted">Update contact details and notes. Use Refresh on the Workspace tab after other changes.</p>
 
           <label for="editBorrowerSelect">Borrower</label>
@@ -425,8 +518,8 @@
           <label for="editBorrowerNotes">Notes</label>
           <textarea id="editBorrowerNotes" placeholder="Notes (optional)"></textarea>
 
-          <button id="saveBorrowerEditBtn" type="button">Save borrower</button>
-          <div id="editBorrowerMsg" class="muted" style="margin-top:12px;"></div>
+          <button id="saveBorrowerEditBtn" type="button" class="primary">Save borrower</button>
+          <div id="editBorrowerMsg" class="muted message-slot"></div>
         </div>
       </div>
     </div>
@@ -650,10 +743,10 @@
     }
 
     function switchAdminTab(name) {
-      document.querySelectorAll("#adminPanel .admin-tab-btn").forEach((b) => {
+      document.querySelectorAll("#adminPanel .tab-btn").forEach((b) => {
         b.classList.toggle("active", b.dataset.adminTab === name);
       });
-      document.querySelectorAll("#adminPanel .admin-tab-panel").forEach((p) => {
+      document.querySelectorAll("#adminPanel .tab-panel").forEach((p) => {
         p.classList.toggle("active", p.dataset.adminTab === name);
       });
     }
@@ -667,13 +760,13 @@
       document.getElementById("editBorrowerNotes").value = "";
       const msg = document.getElementById("editBorrowerMsg");
       msg.textContent = "";
-      msg.className = "muted";
+      msg.className = "muted message-slot";
     }
 
     function loadBorrowerIntoEditor(id) {
       const msg = document.getElementById("editBorrowerMsg");
       msg.textContent = "";
-      msg.className = "muted";
+      msg.className = "muted message-slot";
       if (!id) {
         clearBorrowerEditor();
         return;
@@ -740,7 +833,7 @@
             <td>${escapeHtml(p.method || "")}</td>
             <td>
               <div class="row-actions">
-                <button type="button" class="secondary js-edit-pay" data-id="${p.id}">Edit</button>
+                <button type="button" class="js-edit-pay" data-id="${p.id}">Edit</button>
               </div>
             </td>
           </tr>
@@ -1220,7 +1313,7 @@
     document.getElementById("adminForgotPasswordBtn").addEventListener("click", sendAdminPasswordResetEmail);
     document.getElementById("saveAdminPasswordBtn").addEventListener("click", saveAdminNewPassword);
 
-    document.querySelectorAll("#adminPanel .admin-tab-btn").forEach((btn) => {
+    document.querySelectorAll("#adminPanel .tab-btn").forEach((btn) => {
       btn.addEventListener("click", () => switchAdminTab(btn.dataset.adminTab));
     });
 
