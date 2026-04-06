@@ -542,14 +542,6 @@
   </div>
 
   <script>
-    const staffRecoveryFromEmail = (function () {
-      try {
-        return new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery";
-      } catch (e) {
-        return false;
-      }
-    })();
-
     function staffResetRedirectUrl() {
       return new URL("admin.html", window.location.href).href.replace(/[#?].*$/, "");
     }
@@ -563,6 +555,19 @@
         }
       }
     );
+
+    var staffPasswordRecoveryActive = false;
+
+    supabaseClient.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        staffPasswordRecoveryActive = true;
+        showStaffPasswordResetCard();
+      }
+      if (event === "SIGNED_OUT") {
+        staffPasswordRecoveryActive = false;
+        showStaffAuthGate("");
+      }
+    });
 
     function showStaffAuthGate(message) {
       document.getElementById("staffResetCard").classList.add("hidden");
@@ -585,11 +590,55 @@
     }
 
     async function startStaffApp() {
-      if (staffRecoveryFromEmail) {
+      await supabaseClient.auth.getSession();
+
+      if (staffPasswordRecoveryActive) {
+        return;
+      }
+
+      var u = new URL(window.location.href);
+      var hashRecovery = false;
+      try {
+        hashRecovery = new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery";
+      } catch (e) {
+        hashRecovery = false;
+      }
+
+      if (hashRecovery) {
         showStaffPasswordResetCard();
         return;
       }
-      const { data: { session } } = await supabaseClient.auth.getSession();
+
+      if (u.searchParams.has("code")) {
+        for (var attempt = 0; attempt < 30; attempt++) {
+          var sess = (await supabaseClient.auth.getSession()).data.session;
+          if (sess) {
+            staffPasswordRecoveryActive = true;
+            showStaffPasswordResetCard();
+            try {
+              u.searchParams.delete("code");
+              history.replaceState(null, "", u.pathname + u.search + u.hash);
+            } catch (e2) {}
+            return;
+          }
+          await new Promise(function (r) {
+            setTimeout(r, 120);
+          });
+        }
+        try {
+          u.searchParams.delete("code");
+          history.replaceState(null, "", u.pathname + u.search + u.hash);
+        } catch (e3) {}
+      }
+
+      if (staffPasswordRecoveryActive) {
+        return;
+      }
+
+      var session = (await supabaseClient.auth.getSession()).data.session;
+      if (staffPasswordRecoveryActive) {
+        return;
+      }
       if (session) {
         showStaffApp();
         await loadAllData();
@@ -612,18 +661,24 @@
           "Open this page over http://localhost (e.g. npx serve .). Password reset cannot use a file:// address.";
         return;
       }
-      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectTo
+      });
       if (error) {
         var hint = "";
-        if ((error.message || "").toLowerCase().match(/redirect|url/)) {
-          hint = " Add this URL in Supabase → Authentication → URL Configuration → Redirect URLs: " + redirectTo;
+        var low = (error.message || "").toLowerCase();
+        if (low.match(/redirect|url|uri/)) {
+          hint =
+            " In Supabase → Authentication → URL Configuration: set Site URL to your app origin (e.g. http://127.0.0.1:3000) and add this exact Redirect URL: " +
+            redirectTo;
         }
-        msg.textContent = (error.message || "Request failed.") + hint;
+        msg.textContent = (error.message || "Request failed.") + (error.code ? " (" + error.code + ")" : "") + hint;
         return;
       }
       msg.textContent =
-        "If that email is registered, a reset link was sent. Check spam. This URL must be allowed in Supabase Redirect URLs: " +
-        redirectTo;
+        "If that email is registered, Supabase sent a reset link. Check spam. In Supabase → Authentication → URL Configuration, allow this Redirect URL exactly: " +
+        redirectTo +
+        " (and set Site URL to the same origin, e.g. http://127.0.0.1:3000 — use 127.0.0.1 vs localhost consistently). If no email arrives, use Project Settings → Auth → SMTP or check Auth logs.";
     }
 
     async function saveStaffNewPassword() {
@@ -645,6 +700,7 @@
         msg.textContent = error.message;
         return;
       }
+      staffPasswordRecoveryActive = false;
       try {
         history.replaceState(null, "", staffResetRedirectUrl());
       } catch (e) {}
@@ -1394,15 +1450,6 @@
     document.getElementById("signOutBtn").addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
       window.location.href = "index.html";
-    });
-
-    supabaseClient.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        showStaffPasswordResetCard();
-      }
-      if (event === "SIGNED_OUT") {
-        showStaffAuthGate("");
-      }
     });
 
     document.getElementById("loanStartDate").value = todayStr();
