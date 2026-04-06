@@ -43,10 +43,16 @@
         <button id="signInBtn">Sign In</button>
         <button id="signUpBtn" class="secondary">Sign Up</button>
         <button id="resetBtn" class="secondary">Forgot Password</button>
-        <button id="signOutBtn" class="secondary hidden">Sign Out</button>
       </div>
 
       <p id="authMessage" class="muted"></p>
+    </div>
+
+    <div id="sessionBar" class="card hidden">
+      <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:10px;">
+        <button id="signOutBtn" type="button" class="secondary">Sign Out</button>
+      </div>
+      <p id="sessionMessage" class="muted" style="margin:12px 0 0;"></p>
     </div>
 
     <div id="passwordResetCard" class="card hidden">
@@ -128,19 +134,34 @@
       document.getElementById("authMessage").textContent = text || "";
     }
 
+    function setSessionMessage(text) {
+      document.getElementById("sessionMessage").textContent = text || "";
+    }
+
     function setResetMessage(text) {
       document.getElementById("resetMessage").textContent = text || "";
+    }
+
+    function showGuestChrome() {
+      document.getElementById("sessionBar").classList.add("hidden");
+      document.getElementById("authCard").classList.remove("hidden");
+    }
+
+    function showSignedInChrome() {
+      document.getElementById("authCard").classList.add("hidden");
+      document.getElementById("sessionBar").classList.remove("hidden");
     }
 
     function showResetCard() {
       document.getElementById("passwordResetCard").classList.remove("hidden");
       document.getElementById("authCard").classList.add("hidden");
+      document.getElementById("sessionBar").classList.add("hidden");
       document.getElementById("dashboard").classList.add("hidden");
     }
 
     function showAuthCard() {
       document.getElementById("passwordResetCard").classList.add("hidden");
-      document.getElementById("authCard").classList.remove("hidden");
+      showGuestChrome();
     }
 
     async function signIn() {
@@ -153,11 +174,13 @@
       }
 
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      setAuthMessage(error ? error.message : "Signed in.");
-
-      if (!error) {
-        await loadBorrowerDashboard();
+      if (error) {
+        setAuthMessage(error.message);
+        return;
       }
+
+      setAuthMessage("");
+      await loadBorrowerDashboard();
     }
 
     async function signUp() {
@@ -268,18 +291,24 @@
         return;
       }
 
-      setResetMessage("Password updated. You can now sign in.");
-      setTimeout(() => {
-        showAuthCard();
-        setAuthMessage("Password updated. Please sign in.");
+      setResetMessage("Password updated.");
+      setTimeout(async () => {
+        document.getElementById("passwordResetCard").classList.add("hidden");
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+          await loadBorrowerDashboard();
+        } else {
+          showAuthCard();
+          setAuthMessage("Password updated. Please sign in.");
+        }
       }, 1200);
     }
 
     async function signOut() {
       await supabaseClient.auth.signOut();
       document.getElementById("dashboard").classList.add("hidden");
-      document.getElementById("signOutBtn").classList.add("hidden");
-      showAuthCard();
+      showGuestChrome();
+      setSessionMessage("");
       setAuthMessage("Signed out.");
     }
 
@@ -302,22 +331,25 @@
       const user = authData?.user;
 
       if (authError || !user) {
+        showGuestChrome();
+        document.getElementById("dashboard").classList.add("hidden");
         setAuthMessage("No signed-in user found.");
         return;
       }
 
-      document.getElementById("signOutBtn").classList.remove("hidden");
+      showSignedInChrome();
+      setSessionMessage("");
 
       const { borrower, error: borrowerError } = await findBorrowerForUser(user);
 
       if (borrowerError) {
-        setAuthMessage("Borrower lookup error: " + borrowerError.message + (borrowerError.code ? ` (${borrowerError.code})` : ""));
+        setSessionMessage("Borrower lookup error: " + borrowerError.message + (borrowerError.code ? ` (${borrowerError.code})` : ""));
         document.getElementById("dashboard").classList.add("hidden");
         return;
       }
 
       if (!borrower) {
-        setAuthMessage("No borrower profile linked to this login yet.");
+        setSessionMessage("No borrower profile linked to this login yet.");
         document.getElementById("dashboard").classList.add("hidden");
         return;
       }
@@ -329,14 +361,14 @@
         .order("created_at", { ascending: false });
 
       if (loanError) {
-        setAuthMessage("Loan lookup error: " + loanError.message);
+        setSessionMessage("Loan lookup error: " + loanError.message);
         document.getElementById("dashboard").classList.add("hidden");
         return;
       }
 
       const loan = loans && loans.length ? loans[0] : null;
       if (!loan) {
-        setAuthMessage("No loan found for this borrower.");
+        setSessionMessage("No loan found for this borrower.");
         document.getElementById("dashboard").classList.add("hidden");
         return;
       }
@@ -348,7 +380,7 @@
         .order("date", { ascending: false });
 
       if (paymentError) {
-        setAuthMessage("Payment lookup error: " + paymentError.message + (paymentError.code ? ` (${paymentError.code})` : ""));
+        setSessionMessage("Payment lookup error: " + paymentError.message + (paymentError.code ? ` (${paymentError.code})` : ""));
         document.getElementById("dashboard").classList.add("hidden");
         return;
       }
@@ -377,7 +409,7 @@
       }
 
       document.getElementById("dashboard").classList.remove("hidden");
-      setAuthMessage("");
+      setSessionMessage("");
     }
 
     document.getElementById("signInBtn").addEventListener("click", signIn);
