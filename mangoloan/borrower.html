@@ -229,7 +229,7 @@
     }
 
     function passwordResetRedirectUrl() {
-      return new URL("borrower.html", window.location.href).href.replace(/[#?].*$/, "");
+      return new URL("reset-password.html", window.location.href).href.replace(/[#?].*$/, "");
     }
 
     async function resetPassword() {

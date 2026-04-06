@@ -8,15 +8,15 @@
     (function () {
       try {
         var path = (window.location.pathname || "").toLowerCase();
-        if (path.indexOf("admin.html") !== -1 || path.indexOf("borrower.html") !== -1) return;
+        if (path.indexOf("admin.html") !== -1 || path.indexOf("borrower.html") !== -1 || path.indexOf("reset-password.html") !== -1) return;
         var h = window.location.hash || "";
         var q = window.location.search || "";
         if (/[?&#]type=recovery(?:&|=|$)/.test(h + q) || h.indexOf("type=recovery") !== -1) {
-          window.location.replace(new URL("admin.html" + q + h, window.location.href).href);
+          window.location.replace(new URL("reset-password.html" + q + h, window.location.href).href);
           return;
         }
         if (q.indexOf("code=") !== -1) {
-          window.location.replace(new URL("admin.html" + q + h, window.location.href).href);
+          window.location.replace(new URL("reset-password.html" + q + h, window.location.href).href);
         }
       } catch (e) {}
     })();
@@ -139,7 +139,7 @@
     <div class="cards">
       <div class="card">
         <h2>Staff — full tracker</h2>
-        <p>Loans, borrowers, payments, edits, import/export, schedules, and receipt drafts. Sign in with your staff Supabase account (<code>admin_users</code>). Forgot the password? Use <strong>Forgot password</strong> on that page (add your <code>admin.html</code> URL under Supabase → Authentication → Redirect URLs).</p>
+        <p>Loans, borrowers, payments, edits, import/export, schedules, and receipt drafts. Sign in with your staff Supabase account (<code>admin_users</code>). Forgot the password? Use <strong>Forgot password</strong> on that page. Add your full <code>reset-password.html</code> URL under Supabase → Authentication → Redirect URLs.</p>
         <a class="cta primary" href="admin.html">Open staff dashboard</a>
       </div>
 

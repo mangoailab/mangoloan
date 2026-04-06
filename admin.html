@@ -555,6 +555,10 @@
   </div>
 
   <script>
+    function staffResetEmailRedirectUrl() {
+      return new URL("reset-password.html", window.location.href).href.replace(/[#?].*$/, "");
+    }
+
     function staffResetRedirectUrl() {
       return new URL("admin.html", window.location.href).href.replace(/[#?].*$/, "");
     }
@@ -895,7 +899,7 @@
         msg.textContent = "Enter your email above, then click Forgot password.";
         return;
       }
-      const redirectTo = staffResetRedirectUrl();
+      const redirectTo = staffResetEmailRedirectUrl();
       if (redirectTo.startsWith("file:")) {
         msg.textContent =
           "Open this page over http://localhost (e.g. npx serve .). Password reset cannot use a file:// address.";
@@ -916,9 +920,9 @@
         return;
       }
       msg.textContent =
-        "If that email is registered, Supabase sent a reset link. The link must open this staff page (admin.html) so you can choose a new password on “Set new staff password.” Check spam. In Supabase → Authentication → URL Configuration, allow this Redirect URL exactly: " +
+        "If that email is registered, Supabase sent a reset link to the password reset page (reset-password.html). Check spam. In Supabase → Authentication → URL Configuration, allow this Redirect URL exactly: " +
         redirectTo +
-        " (Site URL should be the same origin, e.g. http://127.0.0.1:3000 — use 127.0.0.1 vs localhost consistently). If the link opens your home page instead, add admin.html to Redirect URLs and use it in the email template or Site URL as documented. If no email arrives, use Project Settings → Auth → SMTP or check Auth logs.";
+        " (same origin as your site, e.g. https://yoursite.vercel.app/reset-password.html). If no email arrives, use Project Settings → Auth → SMTP or check Auth logs.";
     }
 
     async function saveStaffNewPassword() {
