@@ -616,19 +616,24 @@
         return;
       }
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
-        if (staffPasswordRecoveryActive) return;
+        if (staffPasswordRecoveryActive) {
+          showStaffPasswordResetCard();
+          return;
+        }
         var u = new URL(window.location.href);
         try {
-          var ht = new URLSearchParams(u.hash.replace(/^#/, "")).get("type");
-          if (ht === "recovery" && !(session && session.user)) return;
-        } catch (e1) {}
-        if (u.searchParams.has("code")) {
-          if (session && session.user) {
-            stripOAuthCodeFromUrl();
-          } else {
+          if (new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery") {
+            staffPasswordRecoveryActive = true;
+            showStaffPasswordResetCard();
             return;
           }
+        } catch (e1) {}
+        if (session && sessionLooksLikePasswordRecovery(session)) {
+          staffPasswordRecoveryActive = true;
+          showStaffPasswordResetCard();
+          return;
         }
+        if (u.searchParams.has("code") && (!session || !session.user)) return;
         await applySessionToStaffGate(session);
       }
     });
@@ -701,22 +706,68 @@
       } catch (eStrip) {}
     }
 
-    async function applySessionToStaffGate(sessionHint) {
-      if (sessionHint && sessionHint.user) {
-        staffPasswordRecoveryActive = false;
-      }
-      if (staffPasswordRecoveryActive) return;
-      var u = new URL(window.location.href);
+    function urlHasRecoveryHash(u) {
       try {
-        var hashType = new URLSearchParams(u.hash.replace(/^#/, "")).get("type");
-        if (hashType === "recovery" && !(sessionHint && sessionHint.user)) return;
-      } catch (e2) {}
+        return new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery";
+      } catch (eH) {
+        return false;
+      }
+    }
+
+    function sessionLooksLikePasswordRecovery(session) {
+      if (!session || !session.access_token) return false;
+      try {
+        var part = session.access_token.split(".")[1];
+        var pad = part.length % 4;
+        if (pad) part += "====".slice(0, 4 - pad);
+        var json = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")));
+        var amr = json.amr;
+        if (!Array.isArray(amr)) return false;
+        for (var i = 0; i < amr.length; i++) {
+          var m = amr[i];
+          if (m === "recovery") return true;
+          if (m && typeof m === "object" && m.method === "recovery") return true;
+          if (Array.isArray(m) && m[0] === "recovery") return true;
+        }
+      } catch (eJ) {}
+      return false;
+    }
+
+    async function applySessionToStaffGate(sessionHint) {
+      var u = new URL(window.location.href);
+
+      if (staffPasswordRecoveryActive) {
+        showStaffPasswordResetCard();
+        return;
+      }
+      if (urlHasRecoveryHash(u)) {
+        staffPasswordRecoveryActive = true;
+        showStaffPasswordResetCard();
+        return;
+      }
+
       if (u.searchParams.has("code")) {
-        if (sessionHint && sessionHint.user) {
+        if (!sessionHint || !sessionHint.user) return;
+        if (sessionLooksLikePasswordRecovery(sessionHint)) {
+          staffPasswordRecoveryActive = true;
           stripOAuthCodeFromUrl();
-        } else {
+          showStaffPasswordResetCard();
           return;
         }
+        var codeProbe = await checkStaffDashboardAccess(sessionHint.user.id);
+        if (!codeProbe.ok) {
+          staffPasswordRecoveryActive = true;
+          stripOAuthCodeFromUrl();
+          showStaffPasswordResetCard();
+          return;
+        }
+        stripOAuthCodeFromUrl();
+      }
+
+      if (sessionHint && sessionLooksLikePasswordRecovery(sessionHint)) {
+        staffPasswordRecoveryActive = true;
+        showStaffPasswordResetCard();
+        return;
       }
 
       var user = sessionHint && sessionHint.user ? sessionHint.user : null;
@@ -865,9 +916,9 @@
         return;
       }
       msg.textContent =
-        "If that email is registered, Supabase sent a reset link. Check spam. In Supabase → Authentication → URL Configuration, allow this Redirect URL exactly: " +
+        "If that email is registered, Supabase sent a reset link. The link must open this staff page (admin.html) so you can choose a new password on “Set new staff password.” Check spam. In Supabase → Authentication → URL Configuration, allow this Redirect URL exactly: " +
         redirectTo +
-        " (and set Site URL to the same origin, e.g. http://127.0.0.1:3000 — use 127.0.0.1 vs localhost consistently). If no email arrives, use Project Settings → Auth → SMTP or check Auth logs.";
+        " (Site URL should be the same origin, e.g. http://127.0.0.1:3000 — use 127.0.0.1 vs localhost consistently). If the link opens your home page instead, add admin.html to Redirect URLs and use it in the email template or Site URL as documented. If no email arrives, use Project Settings → Auth → SMTP or check Auth logs.";
     }
 
     async function saveStaffNewPassword() {
@@ -1712,6 +1763,7 @@
           return;
         }
         clearStaffDashboardAuth();
+        staffPasswordRecoveryActive = false;
         const session = signData && signData.session ? signData.session : null;
         if (!session || !session.user) {
           msg.textContent =
