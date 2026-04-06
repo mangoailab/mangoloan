@@ -100,6 +100,18 @@
       min-height: auto;
     }
 
+    .auth-gate-wrap {
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .auth-gate-card {
+      max-width: 440px;
+      width: 100%;
+    }
+
     .stats {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -279,6 +291,21 @@
   </style>
 </head>
 <body>
+  <div id="authGate" class="container auth-gate-wrap">
+    <div class="card auth-gate-card">
+      <h3>Staff sign in</h3>
+      <p class="muted">Sign in with your <strong>staff</strong> Supabase account. Your user id must be in the <code>admin_users</code> table or row-level security will hide loans and borrowers.</p>
+      <div class="field"><label for="staffEmail">Email</label><input id="staffEmail" type="email" autocomplete="username" placeholder="you@company.com" /></div>
+      <div class="field"><label for="staffPassword">Password</label><input id="staffPassword" type="password" autocomplete="current-password" /></div>
+      <div class="actions" style="margin-top:14px;">
+        <button type="button" id="staffSignInBtn" class="primary">Sign in</button>
+        <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
+      </div>
+      <p id="staffAuthMsg" class="muted" style="margin-top:12px;"></p>
+    </div>
+  </div>
+
+  <div id="appShell" class="hidden">
   <div class="container">
     <div class="topbar">
       <div>
@@ -497,6 +524,7 @@
       </div>
     </div>
   </div>
+  </div>
 
   <script>
     (function redirectPasswordRecoveryToBorrower() {
@@ -511,8 +539,35 @@
 
     const supabaseClient = window.supabase.createClient(
       "https://ensuvkedfzepbpipivgp.supabase.co",
-      "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW"
+      "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW",
+      {
+        auth: {
+          detectSessionInUrl: true
+        }
+      }
     );
+
+    function showStaffAuthGate(message) {
+      document.getElementById("authGate").classList.remove("hidden");
+      document.getElementById("appShell").classList.add("hidden");
+      const el = document.getElementById("staffAuthMsg");
+      el.textContent = message || "";
+    }
+
+    function showStaffApp() {
+      document.getElementById("authGate").classList.add("hidden");
+      document.getElementById("appShell").classList.remove("hidden");
+    }
+
+    async function startStaffApp() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) {
+        showStaffApp();
+        await loadAllData();
+        return;
+      }
+      showStaffAuthGate("");
+    }
 
     const state = {
       borrowers: [],
@@ -589,8 +644,14 @@
         .order("created_at", { ascending: false });
 
       if (borrowerError || loanError || paymentError) {
-        console.error(borrowerError || loanError || paymentError);
-        showMessage("Could not load database data.");
+        const err = borrowerError || loanError || paymentError;
+        console.error(err);
+        var em = (err.message || "").toLowerCase();
+        var authHint =
+          em.includes("jwt") || em.includes("permission") || em.includes("policy") || err.code === "PGRST301"
+            ? " Sign in with a staff account (admin_users)."
+            : "";
+        showMessage("Could not load database data." + authHint);
         return;
       }
 
@@ -1225,16 +1286,40 @@
 
     document.getElementById("generateScheduleBtn").addEventListener("click", generateMonthlySchedule);
 
+    document.getElementById("staffSignInBtn").addEventListener("click", async () => {
+      const email = document.getElementById("staffEmail").value.trim();
+      const password = document.getElementById("staffPassword").value;
+      const msg = document.getElementById("staffAuthMsg");
+      msg.textContent = "";
+      if (!email || !password) {
+        msg.textContent = "Enter email and password.";
+        return;
+      }
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        msg.textContent = error.message;
+        return;
+      }
+      showStaffApp();
+      await loadAllData();
+    });
+
     document.getElementById("signOutBtn").addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
       window.location.href = "index.html";
+    });
+
+    supabaseClient.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        showStaffAuthGate("");
+      }
     });
 
     document.getElementById("loanStartDate").value = todayStr();
     document.getElementById("paymentDate").value = todayStr();
     document.getElementById("scheduleFirstDate").value = todayStr();
 
-    loadAllData();
+    startStaffApp();
   </script>
 </body>
 </html>
