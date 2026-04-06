@@ -291,6 +291,7 @@
         <label class="file-label" for="importFile">Import Data</label>
         <input id="importFile" type="file" accept="application/json" class="hidden" />
         <button id="exportBtn">Export Data</button>
+        <button type="button" id="signOutBtn">Sign out</button>
       </div>
     </div>
 
@@ -1223,6 +1224,11 @@
     });
 
     document.getElementById("generateScheduleBtn").addEventListener("click", generateMonthlySchedule);
+
+    document.getElementById("signOutBtn").addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = "index.html";
+    });
 
     document.getElementById("loanStartDate").value = todayStr();
     document.getElementById("paymentDate").value = todayStr();
