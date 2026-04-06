@@ -22,8 +22,8 @@
     .stat { background:#f9fafb; border:1px solid #e5e7eb; border-radius:14px; padding:14px; }
     .value { font-size:24px; font-weight:700; }
     @media (max-width: 640px) { .stats { grid-template-columns: 1fr; } }
-    a.staff-link { color:#2563eb; font-size:14px; font-weight:600; text-decoration:none; }
-    a.staff-link:hover { text-decoration:underline; }
+    a.nav-link { color:#2563eb; font-size:14px; font-weight:600; text-decoration:none; }
+    a.nav-link:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
@@ -31,7 +31,11 @@
     <div class="card">
       <h1>Borrower Portal</h1>
       <p class="muted">Sign in to view your balance and payment history.</p>
-      <p class="muted" style="margin-top:12px;">Staff (manage all loans)? Open <a class="staff-link" href="admin.html">Admin login</a>. This page is only for borrowers.</p>
+      <p class="muted" style="margin-top:12px;">
+        <a class="nav-link" href="index.html">Home</a>
+        <span class="muted" style="margin:0 6px;">·</span>
+        Staff? <a class="nav-link" href="admin.html">Staff dashboard</a>
+      </p>
     </div>
 
     <div id="authCard" class="card">
@@ -49,13 +53,15 @@
     </div>
 
     <div id="sessionBar" class="card hidden">
-      <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <a class="nav-link" href="index.html">Home</a>
         <button id="signOutBtn" type="button" class="secondary">Sign Out</button>
       </div>
       <p id="sessionMessage" class="muted" style="margin:12px 0 0;"></p>
     </div>
 
     <div id="passwordResetCard" class="card hidden">
+      <p class="muted" style="margin-bottom:12px;"><a class="nav-link" href="index.html">Home</a></p>
       <h2>Set New Password</h2>
       <p class="muted">Enter your new password below.</p>
       <input id="newPassword" type="password" placeholder="New password" />
