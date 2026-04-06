@@ -602,7 +602,7 @@
           if (new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery") return;
         } catch (e1) {}
         if (u.searchParams.has("code")) return;
-        await applySessionToStaffGate();
+        await applySessionToStaffGate(session);
       }
     });
 
@@ -656,7 +656,7 @@
       return ok;
     }
 
-    async function applySessionToStaffGate() {
+    async function applySessionToStaffGate(sessionHint) {
       if (staffPasswordRecoveryActive) return;
       var u = new URL(window.location.href);
       try {
@@ -664,14 +664,22 @@
       } catch (e2) {}
       if (u.searchParams.has("code")) return;
 
-      const { data: userData, error: userErr } = await supabaseClient.auth.getUser();
-      if (userErr || !userData || !userData.user) {
+      var user = sessionHint && sessionHint.user ? sessionHint.user : null;
+      if (!user) {
+        const { data: userData } = await supabaseClient.auth.getUser();
+        user = userData && userData.user ? userData.user : null;
+      }
+      if (!user) {
+        const { data: sessWrap } = await supabaseClient.auth.getSession();
+        user = sessWrap.session && sessWrap.session.user ? sessWrap.session.user : null;
+      }
+      if (!user) {
         clearStaffDashboardAuth();
         hideStaffAppShell();
         showStaffAuthGate("");
         return;
       }
-      if (!(await assertCanUseStaffDashboard(userData.user.id))) {
+      if (!(await assertCanUseStaffDashboard(user.id))) {
         clearStaffDashboardAuth();
         hideStaffAppShell();
         showStaffAuthGate(
@@ -805,7 +813,8 @@
         history.replaceState(null, "", staffResetRedirectUrl());
       } catch (e) {}
       clearStaffDashboardAuth();
-      await applySessionToStaffGate();
+      var afterReset = await supabaseClient.auth.getSession();
+      await applySessionToStaffGate(afterReset.data.session);
       var shell = document.getElementById("appShell");
       if (shell.classList.contains("staff-dashboard-open")) {
         showMessage("Password updated. You are signed in.");
@@ -1553,13 +1562,19 @@
         msg.textContent = "Enter email and password.";
         return;
       }
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      msg.textContent = "Signing in…";
+      const { data: signData, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) {
         msg.textContent = error.message;
         return;
       }
       clearStaffDashboardAuth();
-      await applySessionToStaffGate();
+      const session = signData && signData.session ? signData.session : null;
+      if (!session || !session.user) {
+        msg.textContent = "Signed in but session was empty. Wait a moment and click Sign in again, or refresh the page.";
+        return;
+      }
+      await applySessionToStaffGate(session);
     });
 
     document.getElementById("staffGateSignOutBtn").addEventListener("click", async () => {
