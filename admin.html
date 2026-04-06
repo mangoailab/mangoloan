@@ -299,9 +299,24 @@
       <div class="field"><label for="staffPassword">Password</label><input id="staffPassword" type="password" autocomplete="current-password" /></div>
       <div class="actions" style="margin-top:14px;">
         <button type="button" id="staffSignInBtn" class="primary">Sign in</button>
+        <button type="button" id="staffForgotPasswordBtn">Forgot password</button>
         <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
       </div>
       <p id="staffAuthMsg" class="muted" style="margin-top:12px;"></p>
+    </div>
+  </div>
+
+  <div id="staffResetCard" class="container auth-gate-wrap hidden">
+    <div class="card auth-gate-card">
+      <h3>Set new staff password</h3>
+      <p class="muted">You opened a reset link from your email. Choose a password, then you will be signed in to the dashboard if your account is in <code>admin_users</code>.</p>
+      <div class="field"><label for="staffNewPassword">New password</label><input id="staffNewPassword" type="password" autocomplete="new-password" /></div>
+      <div class="field"><label for="staffConfirmPassword">Confirm password</label><input id="staffConfirmPassword" type="password" autocomplete="new-password" /></div>
+      <div class="actions" style="margin-top:14px;">
+        <button type="button" id="staffSavePasswordBtn" class="primary">Save password</button>
+        <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
+      </div>
+      <p id="staffResetMsg" class="muted" style="margin-top:12px;"></p>
     </div>
   </div>
 
@@ -527,15 +542,17 @@
   </div>
 
   <script>
-    (function redirectPasswordRecoveryToBorrower() {
+    const staffRecoveryFromEmail = (function () {
       try {
-        var params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-        if (params.get("type") !== "recovery") return;
-        var target = new URL("borrower.html", window.location.href);
-        target.hash = window.location.hash;
-        window.location.replace(target.href);
-      } catch (e) {}
+        return new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery";
+      } catch (e) {
+        return false;
+      }
     })();
+
+    function staffResetRedirectUrl() {
+      return new URL("admin.html", window.location.href).href.replace(/[#?].*$/, "");
+    }
 
     const supabaseClient = window.supabase.createClient(
       "https://ensuvkedfzepbpipivgp.supabase.co",
@@ -548,18 +565,30 @@
     );
 
     function showStaffAuthGate(message) {
+      document.getElementById("staffResetCard").classList.add("hidden");
       document.getElementById("authGate").classList.remove("hidden");
       document.getElementById("appShell").classList.add("hidden");
       const el = document.getElementById("staffAuthMsg");
       el.textContent = message || "";
     }
 
+    function showStaffPasswordResetCard() {
+      document.getElementById("authGate").classList.add("hidden");
+      document.getElementById("appShell").classList.add("hidden");
+      document.getElementById("staffResetCard").classList.remove("hidden");
+    }
+
     function showStaffApp() {
       document.getElementById("authGate").classList.add("hidden");
+      document.getElementById("staffResetCard").classList.add("hidden");
       document.getElementById("appShell").classList.remove("hidden");
     }
 
     async function startStaffApp() {
+      if (staffRecoveryFromEmail) {
+        showStaffPasswordResetCard();
+        return;
+      }
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
         showStaffApp();
@@ -567,6 +596,61 @@
         return;
       }
       showStaffAuthGate("");
+    }
+
+    async function sendStaffPasswordResetEmail() {
+      const email = document.getElementById("staffEmail").value.trim().toLowerCase();
+      const msg = document.getElementById("staffAuthMsg");
+      msg.textContent = "";
+      if (!email) {
+        msg.textContent = "Enter your email above, then click Forgot password.";
+        return;
+      }
+      const redirectTo = staffResetRedirectUrl();
+      if (redirectTo.startsWith("file:")) {
+        msg.textContent =
+          "Open this page over http://localhost (e.g. npx serve .). Password reset cannot use a file:// address.";
+        return;
+      }
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) {
+        var hint = "";
+        if ((error.message || "").toLowerCase().match(/redirect|url/)) {
+          hint = " Add this URL in Supabase → Authentication → URL Configuration → Redirect URLs: " + redirectTo;
+        }
+        msg.textContent = (error.message || "Request failed.") + hint;
+        return;
+      }
+      msg.textContent =
+        "If that email is registered, a reset link was sent. Check spam. This URL must be allowed in Supabase Redirect URLs: " +
+        redirectTo;
+    }
+
+    async function saveStaffNewPassword() {
+      const a = document.getElementById("staffNewPassword").value;
+      const b = document.getElementById("staffConfirmPassword").value;
+      const msg = document.getElementById("staffResetMsg");
+      msg.textContent = "";
+      if (!a || !b) {
+        msg.textContent = "Enter and confirm your new password.";
+        return;
+      }
+      if (a !== b) {
+        msg.textContent = "Passwords do not match.";
+        return;
+      }
+      msg.textContent = "Saving…";
+      const { error } = await supabaseClient.auth.updateUser({ password: a });
+      if (error) {
+        msg.textContent = error.message;
+        return;
+      }
+      try {
+        history.replaceState(null, "", staffResetRedirectUrl());
+      } catch (e) {}
+      showStaffApp();
+      await loadAllData();
+      showMessage("Password updated. You are signed in.");
     }
 
     const state = {
@@ -1304,12 +1388,18 @@
       await loadAllData();
     });
 
+    document.getElementById("staffForgotPasswordBtn").addEventListener("click", sendStaffPasswordResetEmail);
+    document.getElementById("staffSavePasswordBtn").addEventListener("click", saveStaffNewPassword);
+
     document.getElementById("signOutBtn").addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
       window.location.href = "index.html";
     });
 
     supabaseClient.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        showStaffPasswordResetCard();
+      }
       if (event === "SIGNED_OUT") {
         showStaffAuthGate("");
       }
