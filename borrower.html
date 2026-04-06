@@ -29,13 +29,19 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Borrower Portal</h1>
-      <p class="muted">Sign in to view your balance and payment history.</p>
-      <p class="muted" style="margin-top:12px;">
-        <a class="nav-link" href="index.html">Home</a>
-        <span class="muted" style="margin:0 6px;">·</span>
-        Staff? <a class="nav-link" href="admin.html">Staff dashboard</a>
-      </p>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
+          <h1>Borrower Portal</h1>
+          <p class="muted">Sign in to view your balance and payment history.</p>
+          <p class="muted" style="margin-top:12px;">
+            <a class="nav-link" href="index.html">Home</a>
+            <span class="muted" style="margin:0 6px;">·</span>
+            Staff? <a class="nav-link" href="admin.html">Staff dashboard</a>
+          </p>
+        </div>
+        <button id="signOutBtn" type="button" class="secondary hidden" style="flex-shrink:0;">Sign out</button>
+      </div>
+      <p id="sessionMessage" class="muted hidden" style="margin-top:12px;"></p>
     </div>
 
     <div id="authCard" class="card">
@@ -50,13 +56,6 @@
       </div>
 
       <p id="authMessage" class="muted"></p>
-    </div>
-
-    <div id="sessionBar" class="card hidden">
-      <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:10px;">
-        <button id="signOutBtn" type="button" class="secondary">Sign Out</button>
-      </div>
-      <p id="sessionMessage" class="muted" style="margin:12px 0 0;"></p>
     </div>
 
     <div id="passwordResetCard" class="card hidden">
@@ -140,7 +139,9 @@
     }
 
     function setSessionMessage(text) {
-      document.getElementById("sessionMessage").textContent = text || "";
+      const el = document.getElementById("sessionMessage");
+      el.textContent = text || "";
+      el.classList.toggle("hidden", !text);
     }
 
     function setResetMessage(text) {
@@ -148,19 +149,19 @@
     }
 
     function showGuestChrome() {
-      document.getElementById("sessionBar").classList.add("hidden");
+      document.getElementById("signOutBtn").classList.add("hidden");
       document.getElementById("authCard").classList.remove("hidden");
     }
 
     function showSignedInChrome() {
       document.getElementById("authCard").classList.add("hidden");
-      document.getElementById("sessionBar").classList.remove("hidden");
+      document.getElementById("signOutBtn").classList.remove("hidden");
     }
 
     function showResetCard() {
       document.getElementById("passwordResetCard").classList.remove("hidden");
       document.getElementById("authCard").classList.add("hidden");
-      document.getElementById("sessionBar").classList.add("hidden");
+      document.getElementById("signOutBtn").classList.add("hidden");
       document.getElementById("dashboard").classList.add("hidden");
     }
 
