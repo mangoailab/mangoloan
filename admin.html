@@ -226,9 +226,21 @@
         <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" />
         <div class="login-actions">
           <button id="loginBtn" type="submit">Sign In</button>
+          <button id="adminForgotPasswordBtn" type="button" class="secondary small-btn">Forgot password</button>
         </div>
       </form>
       <div id="loginMsg" class="muted" style="margin-top:12px;"></div>
+    </div>
+
+    <div id="adminPasswordResetCard" class="card hidden">
+      <h2>Set new admin password</h2>
+      <p class="muted">You opened a password reset link. Choose a new password, then you will continue to admin access if your account is in <code>admin_users</code>.</p>
+      <label for="adminNewPassword">New password</label>
+      <input id="adminNewPassword" type="password" autocomplete="new-password" placeholder="New password" />
+      <label for="adminConfirmPassword">Confirm password</label>
+      <input id="adminConfirmPassword" type="password" autocomplete="new-password" placeholder="Confirm new password" />
+      <button id="saveAdminPasswordBtn" type="button">Save password</button>
+      <div id="adminResetMsg" class="muted" style="margin-top:12px;"></div>
     </div>
 
     <div id="loadingCard" class="card">
@@ -422,6 +434,16 @@
 
   <script>
 (function () {
+    const recoveryFromEmailLink = (function () {
+      try {
+        return new URLSearchParams(window.location.hash.replace(/^#/, "")).get("type") === "recovery";
+      } catch (e) {
+        return false;
+      }
+    })();
+
+    let adminPasswordRecoveryMode = false;
+
     if (!window.supabase || typeof window.supabase.createClient !== "function") {
       var st = document.getElementById("accessStatus");
       if (st) {
@@ -434,7 +456,11 @@
 
     const supabaseUrl = "https://ensuvkedfzepbpipivgp.supabase.co";
     const supabaseKey = "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW";
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        detectSessionInUrl: true
+      }
+    });
 
     const loadingCard = document.getElementById("loadingCard");
     const adminPanel = document.getElementById("adminPanel");
@@ -529,9 +555,30 @@
       box.classList.remove("hidden");
     }
 
+    function showAdminPasswordResetCard() {
+      adminPasswordRecoveryMode = true;
+      hideNotAdminHelp();
+      setDataLoadError("");
+      loadingCard.classList.add("hidden");
+      authCard.classList.add("hidden");
+      adminPanel.classList.add("hidden");
+      document.getElementById("adminPasswordResetCard").classList.remove("hidden");
+      signOutBtn.classList.add("hidden");
+    }
+
+    function hideAdminPasswordResetCard() {
+      adminPasswordRecoveryMode = false;
+      document.getElementById("adminPasswordResetCard").classList.add("hidden");
+      document.getElementById("adminNewPassword").value = "";
+      document.getElementById("adminConfirmPassword").value = "";
+      document.getElementById("adminResetMsg").textContent = "";
+      document.getElementById("adminResetMsg").className = "muted";
+    }
+
     function showLogin(message) {
       hideNotAdminHelp();
       setDataLoadError("");
+      hideAdminPasswordResetCard();
       loadingCard.classList.add("hidden");
       adminPanel.classList.add("hidden");
       authCard.classList.remove("hidden");
@@ -771,10 +818,17 @@
     }
 
     async function checkAdminAccess() {
+      if (adminPasswordRecoveryMode) {
+        return;
+      }
       try {
         showLoading("Checking login session...");
 
         const { user, error: userError } = await resolveAuthUser();
+
+        if (adminPasswordRecoveryMode) {
+          return;
+        }
 
         if (userError) {
           showLogin("Auth error: " + userError.message);
@@ -787,6 +841,10 @@
         }
 
         showLoading("Verifying admin access...");
+
+        if (adminPasswordRecoveryMode) {
+          return;
+        }
 
         let adminRow = null;
         let adminError = null;
@@ -835,6 +893,10 @@
           );
           showNotAdminHelp(user);
           signOutBtn.classList.remove("hidden");
+          return;
+        }
+
+        if (adminPasswordRecoveryMode) {
           return;
         }
 
@@ -1056,6 +1118,77 @@
       showLogin("");
     }
 
+    function adminPasswordResetRedirectUrl() {
+      return new URL("admin.html", window.location.href).href.replace(/[#?].*$/, "");
+    }
+
+    async function sendAdminPasswordResetEmail() {
+      const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+      const loginMsg = document.getElementById("loginMsg");
+      loginMsg.textContent = "";
+
+      if (!email) {
+        loginMsg.textContent = "Enter your email above, then click Forgot password.";
+        return;
+      }
+
+      const redirectTo = adminPasswordResetRedirectUrl();
+      if (redirectTo.startsWith("file:")) {
+        loginMsg.textContent =
+          "Open this page over http://localhost (e.g. npx serve .) — password reset cannot use a file:// address.";
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+      if (error) {
+        var hint = "";
+        if ((error.message || "").toLowerCase().match(/redirect|url/)) {
+          hint =
+            " Add this URL under Supabase → Authentication → URL Configuration → Redirect URLs: " + redirectTo;
+        }
+        loginMsg.textContent = (error.message || "Request failed.") + hint;
+        return;
+      }
+
+      loginMsg.textContent =
+        "If that email is registered, Supabase will send a reset link. Check spam. Allow this Redirect URL: " +
+        redirectTo;
+    }
+
+    async function saveAdminNewPassword() {
+      const newPassword = document.getElementById("adminNewPassword").value;
+      const confirmPassword = document.getElementById("adminConfirmPassword").value;
+      const resetMsg = document.getElementById("adminResetMsg");
+
+      resetMsg.className = "muted";
+      if (!newPassword || !confirmPassword) {
+        resetMsg.textContent = "Enter and confirm your new password.";
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        resetMsg.textContent = "Passwords do not match.";
+        return;
+      }
+
+      resetMsg.textContent = "Saving...";
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+      if (error) {
+        resetMsg.textContent = error.message;
+        return;
+      }
+
+      hideAdminPasswordResetCard();
+      try {
+        history.replaceState(null, "", adminPasswordResetRedirectUrl());
+      } catch (e) {
+        /* ignore */
+      }
+
+      await checkAdminAccess();
+    }
+
     async function doLogin() {
       const email = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("loginPassword").value;
@@ -1084,6 +1217,9 @@
       checkAdminAccess();
     });
 
+    document.getElementById("adminForgotPasswordBtn").addEventListener("click", sendAdminPasswordResetEmail);
+    document.getElementById("saveAdminPasswordBtn").addEventListener("click", saveAdminNewPassword);
+
     document.querySelectorAll("#adminPanel .admin-tab-btn").forEach((btn) => {
       btn.addEventListener("click", () => switchAdminTab(btn.dataset.adminTab));
     });
@@ -1106,12 +1242,22 @@
     signOutBtn.addEventListener("click", signOut);
 
     supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        showAdminPasswordResetCard();
+      }
       if (event === "SIGNED_OUT") {
         showLogin("");
       }
     });
 
-    checkAdminAccess();
+    supabase.auth.getSession().then(() => {
+      if (recoveryFromEmailLink) {
+        loadingCard.classList.add("hidden");
+        showAdminPasswordResetCard();
+        return;
+      }
+      checkAdminAccess();
+    });
 })();
   </script>
 </body>
