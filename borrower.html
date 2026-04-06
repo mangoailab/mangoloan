@@ -108,7 +108,12 @@
 
     const supabaseClient = window.supabase.createClient(
       "https://ensuvkedfzepbpipivgp.supabase.co",
-      "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW"
+      "sb_publishable_cQBGMqkJ_zaOoRj77-Hyvw_XzLH4ACW",
+      {
+        auth: {
+          detectSessionInUrl: true
+        }
+      }
     );
 
     function currency(n) {
@@ -194,20 +199,50 @@
       setAuthMessage("Account created. You can now sign in.");
     }
 
+    function passwordResetRedirectUrl() {
+      return new URL("borrower.html", window.location.href).href.replace(/[#?].*$/, "");
+    }
+
     async function resetPassword() {
-      const email = document.getElementById("email").value.trim();
+      const email = document.getElementById("email").value.trim().toLowerCase();
 
       if (!email) {
         setAuthMessage("Enter your email first.");
         return;
       }
 
-      const redirectTo = new URL("borrower.html", window.location.href).href.split("#")[0];
+      const redirectTo = passwordResetRedirectUrl();
+      if (redirectTo.startsWith("file:")) {
+        setAuthMessage(
+          "Password reset emails cannot be sent while this page is opened as a file on your computer. " +
+            "Start a small local server (for example run: npx serve . in this folder), then open borrower.html at an address like http://localhost:3000/borrower.html and try Forgot Password again."
+        );
+        return;
+      }
+
       const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo
       });
 
-      setAuthMessage(error ? error.message : "Password reset email sent.");
+      if (error) {
+        var hint = "";
+        var msg = (error.message || "").toLowerCase();
+        if (msg.includes("redirect") || msg.includes("url")) {
+          hint =
+            " In Supabase Dashboard → Authentication → URL Configuration, add this exact address under Redirect URLs: " +
+            redirectTo;
+        }
+        setAuthMessage((error.message || "Request failed.") + hint);
+        return;
+      }
+
+      setAuthMessage(
+        "If that email is registered, Supabase will send a reset link shortly. Check spam and promotions. " +
+          "The link only works if this exact page URL is allowed in Supabase → Authentication → URL Configuration → Redirect URLs: " +
+          redirectTo +
+          " (Site URL should match your site, e.g. http://localhost:3000 for local testing.) " +
+          "If nothing arrives, open Authentication → Users in Supabase to confirm the address, and consider enabling custom SMTP under Project Settings → Auth so mail is not rate-limited."
+      );
     }
 
     async function saveNewPassword() {
