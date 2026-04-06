@@ -656,13 +656,28 @@
       return ok;
     }
 
+    function stripOAuthCodeFromUrl() {
+      try {
+        var u = new URL(window.location.href);
+        if (!u.searchParams.has("code")) return;
+        u.searchParams.delete("code");
+        history.replaceState(null, "", u.pathname + u.search + u.hash);
+      } catch (eStrip) {}
+    }
+
     async function applySessionToStaffGate(sessionHint) {
       if (staffPasswordRecoveryActive) return;
       var u = new URL(window.location.href);
       try {
         if (new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery") return;
       } catch (e2) {}
-      if (u.searchParams.has("code")) return;
+      if (u.searchParams.has("code")) {
+        if (sessionHint && sessionHint.user) {
+          stripOAuthCodeFromUrl();
+        } else {
+          return;
+        }
+      }
 
       var user = sessionHint && sessionHint.user ? sessionHint.user : null;
       if (!user) {
@@ -1563,18 +1578,35 @@
         return;
       }
       msg.textContent = "Signing in…";
-      const { data: signData, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) {
-        msg.textContent = error.message;
-        return;
+      try {
+        stripOAuthCodeFromUrl();
+        const { data: signData, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+          msg.textContent = error.message;
+          return;
+        }
+        clearStaffDashboardAuth();
+        const session = signData && signData.session ? signData.session : null;
+        if (!session || !session.user) {
+          msg.textContent =
+            "Signed in but session was empty. Wait a moment and click Sign in again, or refresh the page.";
+          return;
+        }
+        await applySessionToStaffGate(session);
+        var gate = document.getElementById("authGate");
+        if (!gate.classList.contains("hidden") && msg.textContent === "Signing in…") {
+          msg.textContent =
+            "Could not finish sign-in. If the address bar has ?code=, remove it and try again. Otherwise check admin_users and the browser console (F12).";
+        } else if (!gate.classList.contains("hidden")) {
+          /* showStaffAuthGate already set staffAuthMsg */
+        } else {
+          msg.textContent = "";
+        }
+      } catch (e) {
+        console.error(e);
+        msg.textContent =
+          (e && e.message) || "Sign-in failed (network or script error). Try again or check the console (F12).";
       }
-      clearStaffDashboardAuth();
-      const session = signData && signData.session ? signData.session : null;
-      if (!session || !session.user) {
-        msg.textContent = "Signed in but session was empty. Wait a moment and click Sign in again, or refresh the page.";
-        return;
-      }
-      await applySessionToStaffGate(session);
     });
 
     document.getElementById("staffGateSignOutBtn").addEventListener("click", async () => {
