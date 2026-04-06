@@ -248,6 +248,13 @@
     .empty { color: var(--muted); padding: 18px 0; }
     .hidden { display: none; }
 
+    #appShell {
+      display: none !important;
+    }
+    #appShell.staff-dashboard-open {
+      display: block !important;
+    }
+
     .message {
       margin-bottom: 16px;
       padding: 12px 14px;
@@ -563,15 +570,39 @@
     );
 
     var staffPasswordRecoveryActive = false;
+    var staffDashboardAllowedUserId = null;
 
-    supabaseClient.auth.onAuthStateChange((event) => {
+    function clearStaffDashboardAuth() {
+      staffDashboardAllowedUserId = null;
+    }
+
+    function hideStaffAppShell() {
+      var shell = document.getElementById("appShell");
+      shell.classList.remove("staff-dashboard-open");
+      shell.classList.add("hidden");
+    }
+
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         staffPasswordRecoveryActive = true;
         showStaffPasswordResetCard();
+        return;
       }
       if (event === "SIGNED_OUT") {
         staffPasswordRecoveryActive = false;
+        clearStaffDashboardAuth();
+        hideStaffAppShell();
         showStaffAuthGate("");
+        return;
+      }
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+        if (staffPasswordRecoveryActive) return;
+        var u = new URL(window.location.href);
+        try {
+          if (new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery") return;
+        } catch (e1) {}
+        if (u.searchParams.has("code")) return;
+        await applySessionToStaffGate();
       }
     });
 
@@ -579,7 +610,7 @@
       options = options || {};
       document.getElementById("staffResetCard").classList.add("hidden");
       document.getElementById("authGate").classList.remove("hidden");
-      document.getElementById("appShell").classList.add("hidden");
+      hideStaffAppShell();
       document.getElementById("staffAuthMsg").textContent = message || "";
       var extra = document.getElementById("staffGateExtra");
       if (options.showSignOut) {
@@ -591,45 +622,80 @@
 
     async function userIsStaffAdmin(userId) {
       if (!userId) return false;
-      const { data, error } = await supabaseClient
+
+      var byUserId = await supabaseClient
         .from("admin_users")
         .select("user_id")
         .eq("user_id", userId)
         .maybeSingle();
-      if (error) {
-        console.warn("admin_users check:", error.message || error);
+      if (byUserId.error) {
+        console.warn("admin_users check:", byUserId.error.message || byUserId.error);
         return false;
       }
-      return !!data;
+      if (byUserId.data) return true;
+
+      var byAuthCol = await supabaseClient
+        .from("admin_users")
+        .select("auth_user_id")
+        .eq("auth_user_id", userId)
+        .maybeSingle();
+      if (byAuthCol.error) {
+        var low = String(byAuthCol.error.message || byAuthCol.error.details || "").toLowerCase();
+        if (low.indexOf("column") !== -1) return false;
+        console.warn("admin_users check:", byAuthCol.error.message || byAuthCol.error);
+        return false;
+      }
+      return !!byAuthCol.data;
     }
 
-    async function showStaffAppIfAuthorized() {
-      var session = (await supabaseClient.auth.getSession()).data.session;
-      if (!session) {
+    async function assertCanUseStaffDashboard(userId) {
+      if (!userId) return false;
+      if (staffDashboardAllowedUserId === userId) return true;
+      var ok = await userIsStaffAdmin(userId);
+      if (ok) staffDashboardAllowedUserId = userId;
+      return ok;
+    }
+
+    async function applySessionToStaffGate() {
+      if (staffPasswordRecoveryActive) return;
+      var u = new URL(window.location.href);
+      try {
+        if (new URLSearchParams(u.hash.replace(/^#/, "")).get("type") === "recovery") return;
+      } catch (e2) {}
+      if (u.searchParams.has("code")) return;
+
+      const { data: userData, error: userErr } = await supabaseClient.auth.getUser();
+      if (userErr || !userData || !userData.user) {
+        clearStaffDashboardAuth();
+        hideStaffAppShell();
         showStaffAuthGate("");
         return;
       }
-      if (await userIsStaffAdmin(session.user.id)) {
-        showStaffApp();
-        await loadAllData();
+      if (!(await assertCanUseStaffDashboard(userData.user.id))) {
+        clearStaffDashboardAuth();
+        hideStaffAppShell();
+        showStaffAuthGate(
+          "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal.",
+          { showSignOut: true }
+        );
         return;
       }
-      showStaffAuthGate(
-        "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal.",
-        { showSignOut: true }
-      );
+      showStaffApp();
+      await loadAllData();
     }
 
     function showStaffPasswordResetCard() {
       document.getElementById("authGate").classList.add("hidden");
-      document.getElementById("appShell").classList.add("hidden");
+      hideStaffAppShell();
       document.getElementById("staffResetCard").classList.remove("hidden");
     }
 
     function showStaffApp() {
       document.getElementById("authGate").classList.add("hidden");
       document.getElementById("staffResetCard").classList.add("hidden");
-      document.getElementById("appShell").classList.remove("hidden");
+      var shell = document.getElementById("appShell");
+      shell.classList.remove("hidden");
+      shell.classList.add("staff-dashboard-open");
     }
 
     async function startStaffApp() {
@@ -678,15 +744,7 @@
         return;
       }
 
-      var session = (await supabaseClient.auth.getSession()).data.session;
-      if (staffPasswordRecoveryActive) {
-        return;
-      }
-      if (session) {
-        await showStaffAppIfAuthorized();
-        return;
-      }
-      showStaffAuthGate("");
+      await applySessionToStaffGate();
     }
 
     async function sendStaffPasswordResetEmail() {
@@ -746,18 +804,11 @@
       try {
         history.replaceState(null, "", staffResetRedirectUrl());
       } catch (e) {}
-      var sess = (await supabaseClient.auth.getSession()).data.session;
-      if (sess && (await userIsStaffAdmin(sess.user.id))) {
-        showStaffApp();
-        await loadAllData();
+      clearStaffDashboardAuth();
+      await applySessionToStaffGate();
+      var shell = document.getElementById("appShell");
+      if (shell.classList.contains("staff-dashboard-open")) {
         showMessage("Password updated. You are signed in.");
-      } else if (sess) {
-        showStaffAuthGate(
-          "Password updated, but this account is not in admin_users. Ask an administrator to add your user, or sign out and use a staff account.",
-          { showSignOut: true }
-        );
-      } else {
-        showStaffAuthGate("Password updated. Please sign in.");
       }
     }
 
@@ -820,6 +871,21 @@
     }
 
     async function loadAllData() {
+      const { data: userData, error: gateUserErr } = await supabaseClient.auth.getUser();
+      if (gateUserErr || !userData || !userData.user) {
+        hideStaffAppShell();
+        showStaffAuthGate("");
+        return;
+      }
+      if (!(await assertCanUseStaffDashboard(userData.user.id))) {
+        hideStaffAppShell();
+        showStaffAuthGate(
+          "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal.",
+          { showSignOut: true }
+        );
+        return;
+      }
+
       const { data: borrowers, error: borrowerError } = await supabaseClient
         .from("borrowers")
         .select("*")
@@ -1492,19 +1558,12 @@
         msg.textContent = error.message;
         return;
       }
-      var session = (await supabaseClient.auth.getSession()).data.session;
-      if (!session || !(await userIsStaffAdmin(session.user.id))) {
-        showStaffAuthGate(
-          "Signed in, but this user is not in admin_users. Only staff accounts listed there can use this dashboard.",
-          { showSignOut: true }
-        );
-        return;
-      }
-      showStaffApp();
-      await loadAllData();
+      clearStaffDashboardAuth();
+      await applySessionToStaffGate();
     });
 
     document.getElementById("staffGateSignOutBtn").addEventListener("click", async () => {
+      clearStaffDashboardAuth();
       await supabaseClient.auth.signOut();
       showStaffAuthGate("");
     });
@@ -1513,6 +1572,7 @@
     document.getElementById("staffSavePasswordBtn").addEventListener("click", saveStaffNewPassword);
 
     document.getElementById("signOutBtn").addEventListener("click", async () => {
+      clearStaffDashboardAuth();
       await supabaseClient.auth.signOut();
       window.location.href = "index.html";
     });
