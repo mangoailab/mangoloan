@@ -71,8 +71,14 @@ create policy "borrowers_admin_delete"
   on public.borrowers for delete to authenticated
   using (exists (select 1 from public.admin_users au where au.user_id = auth.uid()));
 
--- ---------- borrower portal (read-only for own data) ----------
+-- ---------- borrower portal ----------
 -- Skip this block if you already have equivalent policies.
+
+-- Borrowers may create their own profile during signup, but only linked to their own auth user id.
+drop policy if exists "borrowers_self_insert" on public.borrowers;
+create policy "borrowers_self_insert"
+  on public.borrowers for insert to authenticated
+  with check (auth_user_id = auth.uid());
 
 drop policy if exists "borrowers_self_select" on public.borrowers;
 create policy "borrowers_self_select"

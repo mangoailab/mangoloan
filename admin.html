@@ -1381,6 +1381,13 @@
     }
 
     async function deleteLoan(loanId) {
+      const loan = getLoansWithStats().find((x) => x.id === loanId);
+      const borrowerName = loan?.borrower?.name || "this borrower";
+      const ok = window.confirm(
+        `Delete this loan for ${borrowerName}? This only deletes the loan if Supabase allows it. This action cannot be undone from the app.`
+      );
+      if (!ok) return;
+
       const { error } = await supabaseClient.from("loans").delete().eq("id", loanId);
       if (error) {
         console.error(error);
