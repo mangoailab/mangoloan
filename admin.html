@@ -382,6 +382,24 @@
     </div>
   </div>
 
+  <div id="staffMfaCard" class="container auth-gate-wrap hidden">
+    <div class="card auth-gate-card">
+      <h3>Admin 2-factor authentication</h3>
+      <p id="staffMfaInstructions" class="muted" style="margin-top:0;"></p>
+      <div id="staffMfaEnrollWrap" class="hidden" style="margin:14px 0; text-align:center;">
+        <img id="staffMfaQr" alt="Authenticator QR code" style="max-width:220px; width:100%; background:#fff; border-radius:12px; padding:10px;" />
+        <p class="muted" style="margin-bottom:4px;">Or enter this setup key manually:</p>
+        <code id="staffMfaSecret" style="display:block; overflow-wrap:anywhere;"></code>
+      </div>
+      <div class="field"><label for="staffMfaCode">6-digit code</label><input id="staffMfaCode" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" /></div>
+      <div class="actions" style="margin-top:14px;">
+        <button type="button" id="staffMfaVerifyBtn" class="primary">Verify</button>
+        <button type="button" id="staffMfaCancelBtn">Sign out</button>
+      </div>
+      <p id="staffMfaMsg" class="muted" style="margin-top:12px;"></p>
+    </div>
+  </div>
+
   <div id="appShell" class="hidden">
   <div class="container">
     <div class="topbar">
@@ -659,7 +677,37 @@
 
     var staffPasswordRecoveryActive = false;
     var staffDashboardAllowedUserId = null;
+    var staffPendingMfaSession = null;
+    var staffMfaFactorId = null;
+    var staffMfaChallengeId = null;
     var loadAllDataGeneration = 0;
+    var staffAutoLogoutMessage = "";
+    var STAFF_INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
+    var staffInactivityTimer = null;
+
+    function resetStaffInactivityTimer() {
+      if (staffInactivityTimer) clearTimeout(staffInactivityTimer);
+      staffInactivityTimer = setTimeout(async function () {
+        try {
+          var sess = (await supabaseClient.auth.getSession()).data.session;
+          if (!sess || staffPasswordRecoveryActive) return;
+          staffAutoLogoutMessage = "Signed out after 15 minutes of inactivity.";
+          clearStaffDashboardAuth();
+          await supabaseClient.auth.signOut();
+          showStaffAuthGate(staffAutoLogoutMessage);
+          staffAutoLogoutMessage = "";
+        } catch (e) {
+          console.error("Auto logout failed", e);
+        }
+      }, STAFF_INACTIVITY_TIMEOUT_MS);
+    }
+
+    function startStaffInactivityWatcher() {
+      ["click", "keydown", "mousemove", "touchstart", "scroll"].forEach(function (eventName) {
+        window.addEventListener(eventName, resetStaffInactivityTimer, { passive: true });
+      });
+      resetStaffInactivityTimer();
+    }
 
     function clearStaleSupabaseAuthStorage() {
       var matchers = ["ensuvkedfzepbpipivgp", "supabase.auth.token", "sb-"];
@@ -676,12 +724,35 @@
 
     function clearStaffDashboardAuth() {
       staffDashboardAllowedUserId = null;
+      staffPendingMfaSession = null;
+      staffMfaFactorId = null;
+      staffMfaChallengeId = null;
     }
 
     function hideStaffAppShell() {
       var shell = document.getElementById("appShell");
       shell.classList.remove("staff-dashboard-open");
       shell.classList.add("hidden");
+    }
+
+    function hideStaffMfaCard() {
+      document.getElementById("staffMfaCard").classList.add("hidden");
+      document.getElementById("staffMfaMsg").textContent = "";
+      document.getElementById("staffMfaCode").value = "";
+    }
+
+    function showStaffMfaCard(mode, message) {
+      document.getElementById("authGate").classList.add("hidden");
+      document.getElementById("staffResetCard").classList.add("hidden");
+      hideStaffAppShell();
+      document.getElementById("staffMfaCard").classList.remove("hidden");
+      document.getElementById("staffMfaEnrollWrap").classList.toggle("hidden", mode !== "enroll");
+      document.getElementById("staffMfaInstructions").textContent =
+        mode === "enroll"
+          ? "Scan this QR code with an authenticator app, then enter the 6-digit code to finish setup."
+          : "Enter the 6-digit code from your authenticator app.";
+      document.getElementById("staffMfaMsg").textContent = message || "";
+      document.getElementById("staffMfaCode").focus();
     }
 
     supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -694,8 +765,10 @@
         staffPasswordRecoveryActive = false;
         clearStaffDashboardAuth();
         setTimeout(function () {
+          var message = staffAutoLogoutMessage;
           hideStaffAppShell();
-          showStaffAuthGate("");
+          showStaffAuthGate(message || "");
+          staffAutoLogoutMessage = "";
         }, 0);
         return;
       }
@@ -727,6 +800,7 @@
     function showStaffAuthGate(message, options) {
       options = options || {};
       document.getElementById("staffResetCard").classList.add("hidden");
+      hideStaffMfaCard();
       document.getElementById("authGate").classList.remove("hidden");
       hideStaffAppShell();
       document.getElementById("staffAuthMsg").textContent = message || "";
@@ -819,6 +893,92 @@
       return false;
     }
 
+    function findVerifiedTotpFactor(factorsData) {
+      var totpFactors = factorsData && Array.isArray(factorsData.totp) ? factorsData.totp : [];
+      var allFactors = factorsData && Array.isArray(factorsData.all) ? factorsData.all : [];
+      var factors = totpFactors.concat(allFactors.filter(function (factor) {
+        return factor && (factor.factor_type === "totp" || factor.factorType === "totp");
+      }));
+      return factors.find(function (factor) {
+        return factor && factor.status === "verified";
+      }) || null;
+    }
+
+    async function beginStaffMfaChallenge(factor) {
+      var challenge = await supabaseClient.auth.mfa.challenge({ factorId: factor.id });
+      if (challenge.error) throw challenge.error;
+      staffMfaFactorId = factor.id;
+      staffMfaChallengeId = challenge.data.id;
+      showStaffMfaCard("challenge");
+    }
+
+    async function beginStaffMfaEnrollment() {
+      var enrolled = await supabaseClient.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: "Mango Loan Admin"
+      });
+      if (enrolled.error) throw enrolled.error;
+      staffMfaFactorId = enrolled.data.id;
+      document.getElementById("staffMfaQr").src = enrolled.data.totp.qr_code;
+      document.getElementById("staffMfaSecret").textContent = enrolled.data.totp.secret;
+      var challenge = await supabaseClient.auth.mfa.challenge({ factorId: staffMfaFactorId });
+      if (challenge.error) throw challenge.error;
+      staffMfaChallengeId = challenge.data.id;
+      showStaffMfaCard("enroll");
+    }
+
+    async function requireStaffMfa(sessionHint) {
+      staffPendingMfaSession = sessionHint;
+      var aal = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (!aal.error && aal.data && aal.data.currentLevel === "aal2") return true;
+
+      var listed = await supabaseClient.auth.mfa.listFactors();
+      if (listed.error) throw listed.error;
+      var verifiedTotp = findVerifiedTotpFactor(listed.data);
+      if (verifiedTotp) {
+        await beginStaffMfaChallenge(verifiedTotp);
+      } else {
+        await beginStaffMfaEnrollment();
+      }
+      return false;
+    }
+
+    async function verifyStaffMfaCode() {
+      var code = document.getElementById("staffMfaCode").value.trim().replace(/\s+/g, "");
+      var msg = document.getElementById("staffMfaMsg");
+      var btn = document.getElementById("staffMfaVerifyBtn");
+      msg.textContent = "";
+      if (!/^\d{6}$/.test(code)) {
+        msg.textContent = "Enter the 6-digit code.";
+        return;
+      }
+      if (!staffMfaFactorId || !staffMfaChallengeId) {
+        msg.textContent = "2FA setup was not ready. Sign out and try again.";
+        return;
+      }
+      btn.disabled = true;
+      try {
+        msg.textContent = "Verifying…";
+        var verified = await supabaseClient.auth.mfa.verify({
+          factorId: staffMfaFactorId,
+          challengeId: staffMfaChallengeId,
+          code: code
+        });
+        if (verified.error) {
+          msg.textContent = verified.error.message;
+          return;
+        }
+        msg.textContent = "Checking admin access…";
+        var session = (await supabaseClient.auth.getSession()).data.session || staffPendingMfaSession;
+        await applySessionToStaffGate(session);
+      } catch (e) {
+        console.error(e);
+        msg.textContent = (e && e.message) || "Could not verify 2FA code.";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
     async function applySessionToStaffGate(sessionHint) {
       var u = new URL(window.location.href);
 
@@ -889,6 +1049,9 @@
         showStaffAuthGate("");
         return;
       }
+      var mfaPassed = await requireStaffMfa(sessionHint || { user: user });
+      if (!mfaPassed) return;
+
       var access = await checkStaffDashboardAccess(user.id);
       if (!access.ok) {
         clearStaffDashboardAuth();
@@ -912,6 +1075,7 @@
 
     function showStaffPasswordResetCard() {
       document.getElementById("authGate").classList.add("hidden");
+      hideStaffMfaCard();
       hideStaffAppShell();
       document.getElementById("staffResetCard").classList.remove("hidden");
     }
@@ -919,6 +1083,7 @@
     function showStaffApp() {
       document.getElementById("authGate").classList.add("hidden");
       document.getElementById("staffResetCard").classList.add("hidden");
+      hideStaffMfaCard();
       var shell = document.getElementById("appShell");
       shell.classList.remove("hidden");
       shell.classList.add("staff-dashboard-open");
@@ -2029,6 +2194,15 @@
 
     document.getElementById("staffForgotPasswordBtn").addEventListener("click", sendStaffPasswordResetEmail);
     document.getElementById("staffSavePasswordBtn").addEventListener("click", saveStaffNewPassword);
+    document.getElementById("staffMfaVerifyBtn").addEventListener("click", verifyStaffMfaCode);
+    document.getElementById("staffMfaCode").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") verifyStaffMfaCode();
+    });
+    document.getElementById("staffMfaCancelBtn").addEventListener("click", async () => {
+      clearStaffDashboardAuth();
+      await supabaseClient.auth.signOut();
+      showStaffAuthGate("");
+    });
 
     document.getElementById("signOutBtn").addEventListener("click", async () => {
       clearStaffDashboardAuth();
@@ -2040,6 +2214,7 @@
     document.getElementById("paymentDate").value = todayStr();
     document.getElementById("scheduleFirstDate").value = todayStr();
 
+    startStaffInactivityWatcher();
     startStaffApp();
   </script>
 </body>

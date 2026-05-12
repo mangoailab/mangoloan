@@ -125,6 +125,29 @@
       }
     );
 
+    const BORROWER_INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
+    let borrowerInactivityTimer = null;
+
+    function resetBorrowerInactivityTimer() {
+      if (borrowerInactivityTimer) clearTimeout(borrowerInactivityTimer);
+      borrowerInactivityTimer = setTimeout(async () => {
+        try {
+          const { data: { session } } = await supabaseClient.auth.getSession();
+          if (!session || recoveryFromEmailLink) return;
+          await signOut("Signed out after 15 minutes of inactivity.");
+        } catch (e) {
+          console.error("Auto logout failed", e);
+        }
+      }, BORROWER_INACTIVITY_TIMEOUT_MS);
+    }
+
+    function startBorrowerInactivityWatcher() {
+      ["click", "keydown", "mousemove", "touchstart", "scroll"].forEach((eventName) => {
+        window.addEventListener(eventName, resetBorrowerInactivityTimer, { passive: true });
+      });
+      resetBorrowerInactivityTimer();
+    }
+
     function currency(n) {
       return new Intl.NumberFormat("en-US", {
         style: "currency",
@@ -279,12 +302,12 @@
       }, 1200);
     }
 
-    async function signOut() {
+    async function signOut(message) {
       await supabaseClient.auth.signOut();
       document.getElementById("dashboard").classList.add("hidden");
       showGuestChrome();
       setSessionMessage("");
-      setAuthMessage("Signed out.");
+      setAuthMessage(message || "Signed out.");
     }
 
     async function findBorrowerForUser(user) {
@@ -390,7 +413,7 @@
     document.getElementById("signInBtn").addEventListener("click", signIn);
     document.getElementById("resetBtn").addEventListener("click", resetPassword);
     document.getElementById("savePasswordBtn").addEventListener("click", saveNewPassword);
-    document.getElementById("signOutBtn").addEventListener("click", signOut);
+    document.getElementById("signOutBtn").addEventListener("click", () => signOut());
 
     supabaseClient.auth.onAuthStateChange(async (event) => {
       if (event === "PASSWORD_RECOVERY") {
@@ -398,6 +421,8 @@
         setResetMessage("Enter your new password below.");
       }
     });
+
+    startBorrowerInactivityWatcher();
 
     supabaseClient.auth.getSession().then(({ data }) => {
       if (recoveryFromEmailLink) {
