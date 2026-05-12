@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Staff — Micro Loan Tracker</title>
+  <title>Admin — Micro Loan Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -300,8 +300,7 @@
 <body>
   <div id="authGate" class="container auth-gate-wrap">
     <div class="card auth-gate-card">
-      <h3>Staff sign in</h3>
-      <p class="muted">Sign in with your <strong>staff</strong> Supabase account. Your user id must be in the <code>admin_users</code> table or row-level security will hide loans and borrowers.</p>
+      <h3>Admin sign in</h3>
       <div class="field"><label for="staffEmail">Email</label><input id="staffEmail" type="email" autocomplete="username" placeholder="you@company.com" /></div>
       <div class="field"><label for="staffPassword">Password</label><input id="staffPassword" type="password" autocomplete="current-password" /></div>
       <div class="actions" style="margin-top:14px;">
@@ -321,8 +320,8 @@
 
   <div id="staffResetCard" class="container auth-gate-wrap hidden">
     <div class="card auth-gate-card">
-      <h3>Set new staff password</h3>
-      <p class="muted">You opened a reset link from your email. Choose a password, then you will be signed in to the dashboard if your account is in <code>admin_users</code>.</p>
+      <h3>Set new admin password</h3>
+
       <div class="field"><label for="staffNewPassword">New password</label><input id="staffNewPassword" type="password" autocomplete="new-password" /></div>
       <div class="field"><label for="staffConfirmPassword">Confirm password</label><input id="staffConfirmPassword" type="password" autocomplete="new-password" /></div>
       <div class="actions" style="margin-top:14px;">
@@ -338,7 +337,7 @@
     <div class="topbar">
       <div>
         <h1>Micro Loan Tracker</h1>
-        <div class="subtitle">Staff dashboard: track borrowers, loans, payments, balances, receipts, and schedules. Data is saved in Supabase.</div>
+
       </div>
       <div class="actions">
         <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
@@ -670,7 +669,7 @@
           allowed: false,
           verifyError:
             (byUserId.error.message || "Could not read admin_users.") +
-            " If you are staff, confirm RLS allows SELECT on your row (e.g. admin_users_self_read in supabase/rls_policies_admin.sql)."
+            " If you are an admin, confirm RLS allows SELECT on your row (e.g. admin_users_self_read in supabase/rls_policies_admin.sql)."
         };
       }
       if (byUserId.data) return { allowed: true, verifyError: null };
@@ -818,7 +817,7 @@
           );
         } else {
           showStaffAuthGate(
-            "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
+            "You are signed in, but this account is not in admin_users. The admin dashboard is only for admin accounts. Sign out and sign in with an admin account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
             { showSignOut: true }
           );
         }
@@ -1051,7 +1050,7 @@
           showStaffAuthGate("Could not verify staff access: " + access2.verifyError, { showSignOut: true });
         } else {
           showStaffAuthGate(
-            "You are signed in, but this account is not in admin_users. The staff dashboard is only for admin accounts. Sign out and sign in with a staff account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
+            "You are signed in, but this account is not in admin_users. The admin dashboard is only for admin accounts. Sign out and sign in with an admin account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
             { showSignOut: true }
           );
         }
@@ -1079,7 +1078,7 @@
         var em = (err.message || "").toLowerCase();
         var authHint =
           em.includes("jwt") || em.includes("permission") || em.includes("policy") || err.code === "PGRST301"
-            ? " Sign in with a staff account (admin_users)."
+            ? " Sign in with an admin account (admin_users)."
             : "";
         showMessage("Could not load database data." + authHint);
         return;
@@ -1781,14 +1780,14 @@
             "Signed in but session was empty. Wait a moment and click Sign in again, or refresh the page.";
           return;
         }
-        msg.textContent = "Checking staff access…";
+        msg.textContent = "Checking admin access…";
         await withTimeout(
           applySessionToStaffGate(session),
           90000,
           "Loading the dashboard took too long. Check your connection or Supabase status; try again."
         );
         var gate = document.getElementById("authGate");
-        if (!gate.classList.contains("hidden") && msg.textContent === "Checking staff access…") {
+        if (!gate.classList.contains("hidden") && msg.textContent === "Checking admin access…") {
           msg.textContent =
             "Could not finish sign-in. Remove ?code= from the address bar if present. Confirm your user is in admin_users (Supabase). Open the console (F12) for errors.";
         } else if (!gate.classList.contains("hidden")) {
@@ -1806,7 +1805,7 @@
         if (
           gateEl &&
           !gateEl.classList.contains("hidden") &&
-          (msg.textContent === "Signing in…" || msg.textContent === "Checking staff access…")
+          (msg.textContent === "Signing in…" || msg.textContent === "Checking admin access…")
         ) {
           msg.textContent =
             "Sign-in stalled. Use http:// not file://, try another browser/network, and check F12 → Console for errors.";
