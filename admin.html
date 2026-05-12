@@ -7,13 +7,15 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
-      --bg: #f8fafc;
+      --bg: #fff8ed;
       --card: #ffffff;
-      --text: #0f172a;
-      --muted: #64748b;
-      --line: #e2e8f0;
-      --accent: #0f172a;
-      --soft: #f1f5f9;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #f1d9b5;
+      --accent: #f59e0b;
+      --accent-dark: #b45309;
+      --accent-soft: #fff1cc;
+      --soft: #fff7ed;
       --danger: #b91c1c;
       --danger-bg: #fee2e2;
       --ok: #166534;
@@ -25,12 +27,14 @@
     body {
       margin: 0;
       font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at top left, rgba(245, 158, 11, 0.18), transparent 32%),
+        var(--bg);
       color: var(--text);
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1180px;
       margin: 0 auto;
       padding: 20px;
       padding-bottom: 40px;
@@ -45,8 +49,17 @@
       flex-wrap: wrap;
     }
 
-    h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.1; }
+    h1 { margin: 0 0 6px; font-size: 32px; line-height: 1.1; letter-spacing: -0.03em; }
     h3 { margin: 0 0 14px; font-size: 20px; }
+
+    .eyebrow {
+      color: var(--accent-dark);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
 
     .subtitle {
       color: var(--muted);
@@ -79,9 +92,10 @@
     }
 
     button.primary {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--accent), #f97316);
+      color: #1f2937;
+      border-color: #f59e0b;
+      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.18);
     }
 
     button:hover, .file-label:hover {
@@ -119,12 +133,16 @@
       margin-bottom: 20px;
     }
 
+    .stats .card {
+      background: linear-gradient(180deg, #ffffff, #fffaf0);
+    }
+
     .card {
       background: var(--card);
       border: 1px solid var(--line);
-      border-radius: 20px;
+      border-radius: 22px;
       padding: 18px;
-      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+      box-shadow: 0 10px 28px rgba(180, 83, 9, 0.08);
     }
 
     .stat-label {
@@ -141,20 +159,26 @@
 
     .tabs {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
       margin-bottom: 16px;
       position: sticky;
       top: 0;
-      background: var(--bg);
+      background: rgba(255, 248, 237, 0.94);
+      backdrop-filter: blur(10px);
       z-index: 20;
-      padding: 6px 0 12px;
+      padding: 8px 0 12px;
+    }
+
+    .tab-btn {
+      background: #fffaf0;
     }
 
     .tab-btn.active {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      border-color: #f59e0b;
+      box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.18);
     }
 
     .tab-panel { display: none; }
@@ -173,10 +197,11 @@
       border: 1px solid var(--line);
       border-radius: 14px;
       padding: 12px 14px;
-      min-height: 44px;
+      min-height: 46px;
       font-size: 16px;
       background: white;
       color: var(--text);
+      outline-color: var(--accent);
     }
 
     textarea { min-height: 108px; resize: vertical; }
@@ -259,9 +284,9 @@
       margin-bottom: 16px;
       padding: 12px 14px;
       border-radius: 14px;
-      border: 1px solid #bfdbfe;
-      background: #eff6ff;
-      color: #1e3a8a;
+      border: 1px solid #facc15;
+      background: #fffbeb;
+      color: #92400e;
       font-size: 14px;
     }
 
@@ -279,14 +304,19 @@
 
     @media (max-width: 640px) {
       .container { padding: 14px; padding-bottom: 28px; }
-      h1 { font-size: 26px; }
-      .stats { grid-template-columns: 1fr; }
+      h1 { font-size: 28px; }
+      .topbar { gap: 12px; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .stat-value { font-size: 23px; }
       .actions { width: 100%; }
       .actions > * { flex: 1 1 calc(50% - 8px); }
       .tabs {
         overflow-x: auto;
         flex-wrap: nowrap;
         padding-bottom: 10px;
+        margin-left: -14px;
+        margin-right: -14px;
+        padding-left: 14px;
       }
       .tab-btn { white-space: nowrap; }
       .search { max-width: 100%; }
@@ -294,6 +324,7 @@
       .card { padding: 16px; border-radius: 18px; }
       th, td { padding: 12px 10px; }
       table { min-width: 700px; }
+      .row-actions button { min-height: 38px; padding: 9px 11px; }
     }
   </style>
 </head>
@@ -336,8 +367,8 @@
   <div class="container">
     <div class="topbar">
       <div>
+        <div class="eyebrow">Mango Loan Admin</div>
         <h1>Micro Loan Tracker</h1>
-
       </div>
       <div class="actions">
         <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
@@ -375,7 +406,7 @@
       <button class="tab-btn" data-tab="borrowers">Borrowers</button>
       <button class="tab-btn" data-tab="payments">Payments</button>
       <button class="tab-btn" data-tab="edit">Edit</button>
-      <button class="tab-btn" data-tab="add">Add New</button>
+      <button class="tab-btn" data-tab="add">Add</button>
     </div>
 
     <section id="tab-loans" class="tab-panel active">
