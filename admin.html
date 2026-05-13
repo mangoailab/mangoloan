@@ -1736,7 +1736,8 @@
         return;
       }
 
-      result.textContent = `Temporary password: ${data.tempPassword}`;
+      const loginEmail = data.email || borrower.email || document.getElementById("editBorrowerEmail").value.trim();
+      result.textContent = `Login email: ${loginEmail} | Temporary password: ${data.tempPassword}`;
       result.classList.remove("hidden");
       btn.disabled = false;
       showMessage("Temporary password set.");
@@ -1772,9 +1773,10 @@
 
       await loadAllData();
       loadBorrowerIntoEditor(id);
+      const emailLine = data.email ? ` Login email: ${data.email}.` : "";
       const passwordLine = data.tempPassword ? ` Temporary password: ${data.tempPassword}` : "";
       const resetLine = data.resetLink ? ` Reset link: ${data.resetLink}` : "";
-      result.textContent = `${data.message || "Portal user created and linked."} User ID: ${data.userId}.${passwordLine}${resetLine}`;
+      result.textContent = `${data.message || "Portal user created and linked."} User ID: ${data.userId}.${emailLine}${passwordLine}${resetLine}`;
       result.classList.remove("hidden");
       showMessage("Portal user created and linked.");
     }
