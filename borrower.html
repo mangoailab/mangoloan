@@ -105,7 +105,7 @@
         <h2 id="welcomeTitle">Your Loan</h2>
         <div class="stats">
           <div class="stat">
-            <div class="muted">Original Loan</div>
+            <div class="muted">Total Borrowed</div>
             <div id="principalValue" class="value">$0.00</div>
           </div>
           <div class="stat">
@@ -528,12 +528,34 @@
         return;
       }
 
+      const { data: advances, error: advanceError } = await supabaseClient
+        .from("loan_advances")
+        .select("*")
+        .eq("loan_id", loan.id)
+        .order("date", { ascending: false });
+
+      if (advanceError && advanceError.code !== "42P01") {
+        setSessionMessage("Borrowed amount lookup error: " + advanceError.message + (advanceError.code ? ` (${advanceError.code})` : ""));
+        document.getElementById("dashboard").classList.add("hidden");
+        return;
+      }
+
       const paymentRows = payments || [];
       const totalPaid = paymentRows.reduce((sum, p) => sum + Number(p.amount || 0), 0);
       const principal = Number(loan.principal || 0);
       const balance = Math.max(0, principal - totalPaid);
       const payoffPercent = principal > 0 ? Math.min(100, Math.round((totalPaid / principal) * 100)) : 0;
-      const borrowedRows = principalEntriesFromLoan(loan);
+      const borrowedRows = advances && advances.length
+        ? advances.map((a) => ({
+            id: a.id,
+            date: a.date,
+            created_at: a.created_at,
+            type: "Borrowed",
+            method: a.method || "",
+            amount: Number(a.amount || 0),
+            notes: a.notes || "Borrowed amount"
+          }))
+        : principalEntriesFromLoan(loan);
       const activityAsc = borrowedRows.concat(paymentRows.map((p) => ({
         id: p.id,
         date: p.date,
