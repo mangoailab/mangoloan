@@ -368,6 +368,19 @@
     </div>
   </div>
 
+  <div id="staffForgotPasswordCard" class="container auth-gate-wrap hidden">
+    <div class="card auth-gate-card">
+      <h3>Reset admin password</h3>
+      <p class="muted" style="margin-top:0;">Enter your admin email and we’ll send a password reset link.</p>
+      <div class="field"><label for="staffResetEmail">Email</label><input id="staffResetEmail" type="email" autocomplete="username" placeholder="you@company.com" /></div>
+      <div class="actions" style="margin-top:14px;">
+        <button type="button" id="staffSendResetEmailBtn" class="primary">Send reset link</button>
+        <button type="button" id="staffCancelResetEmailBtn">Back to sign in</button>
+      </div>
+      <p id="staffForgotPasswordMsg" class="muted" style="margin-top:12px;"></p>
+    </div>
+  </div>
+
   <div id="staffResetCard" class="container auth-gate-wrap hidden">
     <div class="card auth-gate-card">
       <h3>Set new admin password</h3>
@@ -754,6 +767,7 @@
     function showStaffMfaCard(mode, message) {
       document.getElementById("authGate").classList.add("hidden");
       document.getElementById("staffResetCard").classList.add("hidden");
+      document.getElementById("staffForgotPasswordCard").classList.add("hidden");
       hideStaffAppShell();
       document.getElementById("staffMfaCard").classList.remove("hidden");
       document.getElementById("staffMfaEnrollWrap").classList.toggle("hidden", mode !== "enroll");
@@ -810,6 +824,7 @@
     function showStaffAuthGate(message, options) {
       options = options || {};
       document.getElementById("staffResetCard").classList.add("hidden");
+      document.getElementById("staffForgotPasswordCard").classList.add("hidden");
       hideStaffMfaCard();
       document.getElementById("authGate").classList.remove("hidden");
       hideStaffAppShell();
@@ -1092,6 +1107,7 @@
 
     function showStaffPasswordResetCard() {
       document.getElementById("authGate").classList.add("hidden");
+      document.getElementById("staffForgotPasswordCard").classList.add("hidden");
       hideStaffMfaCard();
       hideStaffAppShell();
       document.getElementById("staffResetCard").classList.remove("hidden");
@@ -1100,6 +1116,7 @@
     function showStaffApp() {
       document.getElementById("authGate").classList.add("hidden");
       document.getElementById("staffResetCard").classList.add("hidden");
+      document.getElementById("staffForgotPasswordCard").classList.add("hidden");
       hideStaffMfaCard();
       var shell = document.getElementById("appShell");
       shell.classList.remove("hidden");
@@ -1155,23 +1172,42 @@
       await applySessionToStaffGate();
     }
 
+    function showStaffForgotPasswordCard() {
+      const signInEmail = document.getElementById("staffEmail").value.trim();
+      document.getElementById("staffResetEmail").value = signInEmail;
+      document.getElementById("authGate").classList.add("hidden");
+      document.getElementById("staffForgotPasswordCard").classList.remove("hidden");
+      document.getElementById("staffForgotPasswordMsg").textContent = "";
+      document.getElementById("staffResetEmail").focus();
+    }
+
+    function hideStaffForgotPasswordCard() {
+      document.getElementById("staffForgotPasswordCard").classList.add("hidden");
+      document.getElementById("authGate").classList.remove("hidden");
+      document.getElementById("staffForgotPasswordMsg").textContent = "";
+    }
+
     async function sendStaffPasswordResetEmail() {
-      const email = document.getElementById("staffEmail").value.trim().toLowerCase();
-      const msg = document.getElementById("staffAuthMsg");
+      const email = document.getElementById("staffResetEmail").value.trim().toLowerCase();
+      const msg = document.getElementById("staffForgotPasswordMsg");
+      const btn = document.getElementById("staffSendResetEmailBtn");
       msg.textContent = "";
       if (!email) {
-        msg.textContent = "Enter your admin email above, then click Reset admin password.";
+        msg.textContent = "Enter your admin email address.";
         return;
       }
       const redirectTo = staffResetEmailRedirectUrl();
       if (redirectTo.startsWith("file:")) {
         msg.textContent =
-          "Open this page over http://localhost (e.g. npx serve .). Password reset cannot use a file:// address.";
+          "Password reset cannot use a file:// address. Open the live admin page and try again.";
         return;
       }
+      btn.disabled = true;
+      msg.textContent = "Sending reset link...";
       const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo: redirectTo
       });
+      btn.disabled = false;
       if (error) {
         var hint = "";
         var low = (error.message || "").toLowerCase();
@@ -1184,9 +1220,7 @@
         return;
       }
       msg.textContent =
-        "If that admin email is registered, Supabase sent a reset link. Check spam. In Supabase → Authentication → URL Configuration, allow this Redirect URL exactly: " +
-        redirectTo +
-        " (same origin as your site, e.g. https://yoursite.vercel.app/reset-password.html). If no email arrives, use Project Settings → Auth → SMTP or check Auth logs.";
+        "If that admin email is registered, a reset link was sent. Check inbox, spam, or promotions.";
     }
 
     async function saveStaffNewPassword() {
@@ -2340,7 +2374,9 @@
       showStaffAuthGate("");
     });
 
-    document.getElementById("staffForgotPasswordBtn").addEventListener("click", sendStaffPasswordResetEmail);
+    document.getElementById("staffForgotPasswordBtn").addEventListener("click", showStaffForgotPasswordCard);
+    document.getElementById("staffSendResetEmailBtn").addEventListener("click", sendStaffPasswordResetEmail);
+    document.getElementById("staffCancelResetEmailBtn").addEventListener("click", hideStaffForgotPasswordCard);
     document.getElementById("staffSavePasswordBtn").addEventListener("click", saveStaffNewPassword);
     document.getElementById("staffMfaVerifyBtn").addEventListener("click", verifyStaffMfaCode);
     document.getElementById("staffMfaCode").addEventListener("keydown", function (event) {
