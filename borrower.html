@@ -127,13 +127,14 @@
       </div>
 
       <div class="card">
-        <h3>Payment History</h3>
-        <p class="muted small" style="margin-top:-8px;">Newest payments are shown first. Running balance shows what remained after each payment.</p>
+        <h3>Loan Activity</h3>
+        <p class="muted small" style="margin-top:-8px;">Borrowed amounts and payments are shown newest first. Running balance shows what was owed after each activity.</p>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Date</th>
+                <th>Type</th>
                 <th>Method</th>
                 <th>Amount</th>
                 <th>Balance After</th>
@@ -437,6 +438,37 @@
       return { borrower, error: null };
     }
 
+
+    function principalEntriesFromLoan(loan) {
+      const notes = String(loan?.notes || "");
+      const entries = [];
+      const combined = notes.match(/Combined principal entries:\s*(.+?)\.?$/i);
+      if (combined && combined[1]) {
+        const re = /(\d{4}-\d{2}-\d{2})\s+\$([\d,]+(?:\.\d{1,2})?)(?:\s+\(([^)]*)\))?/g;
+        let m;
+        while ((m = re.exec(combined[1])) !== null) {
+          entries.push({
+            id: `borrowed-${m[1]}-${m[2]}`,
+            date: m[1],
+            type: "Borrowed",
+            method: (m[3] || "").toUpperCase().includes("BOA") ? "Bank Transfer" : "Cash",
+            amount: Number(m[2].replace(/,/g, "")),
+            notes: "Borrowed amount"
+          });
+        }
+      }
+      if (!entries.length && loan?.start_date && Number(loan?.principal || 0) > 0) {
+        entries.push({
+          id: `borrowed-${loan.start_date}`,
+          date: loan.start_date,
+          type: "Borrowed",
+          method: "-",
+          amount: Number(loan.principal || 0),
+          notes: "Original loan amount"
+        });
+      }
+      return entries;
+    }
     async function loadBorrowerDashboard() {
       const { data: authData, error: authError } = await supabaseClient.auth.getUser();
       const user = authData?.user;
@@ -501,13 +533,29 @@
       const principal = Number(loan.principal || 0);
       const balance = Math.max(0, principal - totalPaid);
       const payoffPercent = principal > 0 ? Math.min(100, Math.round((totalPaid / principal) * 100)) : 0;
-      const sortedAsc = paymentRows.slice().sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || String(a.created_at || "").localeCompare(String(b.created_at || "")));
+      const borrowedRows = principalEntriesFromLoan(loan);
+      const activityAsc = borrowedRows.concat(paymentRows.map((p) => ({
+        id: p.id,
+        date: p.date,
+        created_at: p.created_at,
+        type: "Payment",
+        method: p.method || "",
+        amount: Number(p.amount || 0),
+        notes: p.notes || ""
+      }))).sort((a, b) =>
+        String(a.date || "").localeCompare(String(b.date || "")) ||
+        String(a.created_at || "").localeCompare(String(b.created_at || "")) ||
+        String(a.type || "").localeCompare(String(b.type || ""))
+      );
       const runningBalanceById = {};
-      let paidSoFar = 0;
-      sortedAsc.forEach((p) => {
-        paidSoFar += Number(p.amount || 0);
-        runningBalanceById[p.id] = Math.max(0, principal - paidSoFar);
+      let runningBalance = 0;
+      activityAsc.forEach((row) => {
+        if (row.type === "Borrowed") runningBalance += Number(row.amount || 0);
+        else runningBalance -= Number(row.amount || 0);
+        runningBalanceById[row.id] = Math.max(0, runningBalance);
       });
+      const activityRows = activityAsc.slice().reverse();
+      const sortedAsc = paymentRows.slice().sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || String(a.created_at || "").localeCompare(String(b.created_at || "")));
       const lastPayment = sortedAsc.length ? sortedAsc[sortedAsc.length - 1] : null;
 
       document.getElementById("welcomeTitle").textContent = `${borrower.name}'s Loan`;
@@ -521,16 +569,17 @@
       document.getElementById("dueDateText").textContent = loan.due_date ? `Due date: ${loan.due_date}` : "No due date set.";
 
       const tbody = document.getElementById("paymentsBody");
-      if (!paymentRows.length) {
-        tbody.innerHTML = `<tr><td colspan="5">No payments yet</td></tr>`;
+      if (!activityRows.length) {
+        tbody.innerHTML = `<tr><td colspan="6">No loan activity yet</td></tr>`;
       } else {
-        tbody.innerHTML = paymentRows.map((p) => `
+        tbody.innerHTML = activityRows.map((row) => `
           <tr>
-            <td>${escapeHtml(p.date || "")}</td>
-            <td>${escapeHtml(p.method || "")}</td>
-            <td>${currency(p.amount)}</td>
-            <td>${currency(runningBalanceById[p.id] || 0)}</td>
-            <td>${escapeHtml(p.notes || "-")}</td>
+            <td>${escapeHtml(row.date || "")}</td>
+            <td>${escapeHtml(row.type || "")}</td>
+            <td>${escapeHtml(row.method || "")}</td>
+            <td>${row.type === "Borrowed" ? "+" : "-"}${currency(row.amount)}</td>
+            <td>${currency(runningBalanceById[row.id] || 0)}</td>
+            <td>${escapeHtml(row.notes || "-")}</td>
           </tr>
         `).join("");
       }
