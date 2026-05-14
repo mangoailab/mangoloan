@@ -69,6 +69,10 @@
       max-width: 640px;
     }
 
+    .brand-heading { display:flex; align-items:center; gap:12px; }
+    .brand-mark { width:46px; height:46px; border-radius:16px; background:#fff1cc; border:1px solid var(--line); display:grid; place-items:center; flex:0 0 auto; box-shadow:0 8px 20px rgba(245,158,11,.14); }
+    .brand-mark img { width:40px; height:40px; display:block; }
+
     .actions {
       display: flex;
       gap: 10px;
@@ -352,7 +356,7 @@
 <body>
   <div id="authGate" class="container auth-gate-wrap">
     <div class="card auth-gate-card">
-      <h3>🥭 Admin sign in</h3>
+      <div class="brand-heading"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-cute-mark.svg" alt="" /></span><h3>Admin sign in</h3></div>
       <div class="field"><label for="staffEmail">Email</label><input id="staffEmail" type="email" autocomplete="username" placeholder="you@company.com" /></div>
       <div class="field"><label for="staffPassword">Password</label><input id="staffPassword" type="password" autocomplete="current-password" /></div>
       <div class="actions" style="margin-top:14px;">
@@ -372,7 +376,7 @@
 
   <div id="staffForgotPasswordCard" class="container auth-gate-wrap hidden">
     <div class="card auth-gate-card">
-      <h3>🥭 Reset admin password</h3>
+      <div class="brand-heading"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-cute-mark.svg" alt="" /></span><h3>Reset admin password</h3></div>
       <p class="muted" style="margin-top:0;">Enter your admin email and we’ll send a password reset link.</p>
       <div class="field"><label for="staffResetEmail">Email</label><input id="staffResetEmail" type="email" autocomplete="username" placeholder="you@company.com" /></div>
       <div class="actions" style="margin-top:14px;">
@@ -420,7 +424,7 @@
     <div class="topbar">
       <div>
         <div class="eyebrow">Mango Loan Admin</div>
-        <h1>🥭 Micro Loan Tracker</h1>
+        <div class="brand-heading"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-cute-mark.svg" alt="" /></span><h1>Micro Loan Tracker</h1></div>
       </div>
       <div class="actions">
         <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
