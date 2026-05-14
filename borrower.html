@@ -53,7 +53,10 @@
             Admin? <a class="nav-link" href="admin.html">Admin dashboard</a>
           </p>
         </div>
-        <button id="signOutBtn" type="button" class="secondary hidden" style="flex-shrink:0;">Sign out</button>
+        <div id="signedInActions" class="hidden" style="display:flex; gap:10px; flex-wrap:wrap; flex-shrink:0;">
+          <button id="showChangePasswordBtn" type="button" class="secondary">Change password</button>
+          <button id="signOutBtn" type="button" class="secondary">Sign out</button>
+        </div>
       </div>
       <p id="sessionMessage" class="muted hidden" style="margin-top:12px;"></p>
     </div>
@@ -83,6 +86,20 @@
       <p id="resetMessage" class="muted"></p>
     </div>
 
+
+    <div id="changePasswordCard" class="card hidden">
+      <h3>Change Password</h3>
+      <p class="muted small" style="margin-top:-8px;">Enter your current password, then choose a new one.</p>
+      <input id="currentPassword" type="password" placeholder="Current password" autocomplete="current-password" />
+      <input id="borrowerNewPassword" type="password" placeholder="New password" autocomplete="new-password" />
+      <input id="borrowerConfirmPassword" type="password" placeholder="Confirm new password" autocomplete="new-password" />
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="changePasswordBtn" type="button">Save Password</button>
+        <button id="cancelChangePasswordBtn" type="button" class="secondary">Cancel</button>
+      </div>
+      <p id="changePasswordMessage" class="muted"></p>
+    </div>
+
     <div id="dashboard" class="hidden">
       <div class="card">
         <h2 id="welcomeTitle">Your Loan</h2>
@@ -107,16 +124,6 @@
           <span id="lastPaymentText" class="pill">No payments yet</span>
         </div>
         <p id="dueDateText" class="muted" style="margin-top:14px;"></p>
-      </div>
-
-      <div class="card">
-        <h3>Change Password</h3>
-        <p class="muted small" style="margin-top:-8px;">Use this after signing in with a temporary password.</p>
-        <input id="currentPassword" type="password" placeholder="Current password" autocomplete="current-password" />
-        <input id="borrowerNewPassword" type="password" placeholder="New password" autocomplete="new-password" />
-        <input id="borrowerConfirmPassword" type="password" placeholder="Confirm new password" autocomplete="new-password" />
-        <button id="changePasswordBtn" type="button">Change Password</button>
-        <p id="changePasswordMessage" class="muted"></p>
       </div>
 
       <div class="card">
@@ -218,19 +225,21 @@
     }
 
     function showGuestChrome() {
-      document.getElementById("signOutBtn").classList.add("hidden");
+      document.getElementById("signedInActions").classList.add("hidden");
+      document.getElementById("changePasswordCard").classList.add("hidden");
       document.getElementById("authCard").classList.remove("hidden");
     }
 
     function showSignedInChrome() {
       document.getElementById("authCard").classList.add("hidden");
-      document.getElementById("signOutBtn").classList.remove("hidden");
+      document.getElementById("signedInActions").classList.remove("hidden");
     }
 
     function showResetCard() {
       document.getElementById("passwordResetCard").classList.remove("hidden");
       document.getElementById("authCard").classList.add("hidden");
-      document.getElementById("signOutBtn").classList.add("hidden");
+      document.getElementById("signedInActions").classList.add("hidden");
+      document.getElementById("changePasswordCard").classList.add("hidden");
       document.getElementById("dashboard").classList.add("hidden");
     }
 
@@ -304,6 +313,20 @@
       );
     }
 
+    function showChangePasswordCard() {
+      document.getElementById("changePasswordCard").classList.remove("hidden");
+      setChangePasswordMessage("");
+      document.getElementById("currentPassword").focus();
+    }
+
+    function hideChangePasswordCard() {
+      document.getElementById("changePasswordCard").classList.add("hidden");
+      document.getElementById("currentPassword").value = "";
+      document.getElementById("borrowerNewPassword").value = "";
+      document.getElementById("borrowerConfirmPassword").value = "";
+      setChangePasswordMessage("");
+    }
+
     async function changeBorrowerPassword() {
       const currentPassword = document.getElementById("currentPassword").value;
       const newPassword = document.getElementById("borrowerNewPassword").value;
@@ -348,6 +371,7 @@
         document.getElementById("borrowerNewPassword").value = "";
         document.getElementById("borrowerConfirmPassword").value = "";
         setChangePasswordMessage("Password changed.");
+        setTimeout(hideChangePasswordCard, 1000);
       } catch (e) {
         setChangePasswordMessage((e && e.message) || "Could not change password.");
       } finally {
@@ -518,7 +542,9 @@
     document.getElementById("signInBtn").addEventListener("click", signIn);
     document.getElementById("resetBtn").addEventListener("click", resetPassword);
     document.getElementById("savePasswordBtn").addEventListener("click", saveNewPassword);
+    document.getElementById("showChangePasswordBtn").addEventListener("click", showChangePasswordCard);
     document.getElementById("changePasswordBtn").addEventListener("click", changeBorrowerPassword);
+    document.getElementById("cancelChangePasswordBtn").addEventListener("click", hideChangePasswordCard);
     document.getElementById("signOutBtn").addEventListener("click", () => signOut());
 
     supabaseClient.auth.onAuthStateChange(async (event) => {
