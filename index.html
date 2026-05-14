@@ -23,12 +23,17 @@
   </script>
   <style>
     :root {
-      --bg: #f8fafc;
+      color-scheme: light;
+      --bg: #fff8ed;
       --card: #ffffff;
-      --text: #0f172a;
-      --muted: #64748b;
-      --line: #e2e8f0;
-      --accent: #0f172a;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #f1d9b5;
+      --accent: #f59e0b;
+      --accent-dark: #92400e;
+      --accent-green: #16a34a;
+      --accent-soft: #fff1cc;
+      --soft: #fff7ed;
     }
 
     * { box-sizing: border-box; }
@@ -36,117 +41,107 @@
     body {
       margin: 0;
       font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at top left, rgba(245, 158, 11, 0.22), transparent 28rem),
+        radial-gradient(circle at bottom right, rgba(22, 163, 74, 0.12), transparent 24rem),
+        var(--bg);
       color: var(--text);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
     }
 
     .container {
-      max-width: 720px;
+      max-width: 920px;
       margin: 0 auto;
-      padding: 48px 20px 56px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      padding: 42px 18px 56px;
     }
 
-    h1 {
-      margin: 0 0 12px;
-      font-size: clamp(28px, 5vw, 36px);
-      line-height: 1.15;
-      letter-spacing: -0.02em;
-    }
-
-    .lead {
-      margin: 0 0 32px;
-      font-size: 17px;
-      line-height: 1.55;
-      color: var(--muted);
-      max-width: 520px;
-    }
-
-    .cards {
-      display: grid;
-      gap: 14px;
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 22px 22px 20px;
-      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
-    }
-
-    .card h2 {
-      margin: 0 0 8px;
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .card p {
-      margin: 0 0 16px;
-      font-size: 14px;
-      line-height: 1.5;
-      color: var(--muted);
-    }
-
-    a.cta {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 18px;
-      border-radius: 14px;
-      font-size: 14px;
-      font-weight: 600;
-      text-decoration: none;
-      border: 1px solid var(--line);
-      background: white;
-      color: var(--text);
-      transition: 0.15s ease;
-    }
-
-    a.cta:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
-    }
-
-    a.cta.primary {
-      background: var(--accent);
+    .hero {
+      background: linear-gradient(135deg, #78350f 0%, #f59e0b 58%, #16a34a 100%);
       color: white;
-      border-color: var(--accent);
+      border-radius: 28px;
+      padding: clamp(24px, 5vw, 42px);
+      box-shadow: 0 18px 44px rgba(146, 64, 14, 0.22);
+      margin-bottom: 18px;
+      overflow: hidden;
+      position: relative;
     }
 
-    .footer-note {
-      margin-top: 36px;
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.5;
+    .hero:after {
+      content: "";
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      border-radius: 999px;
+      right: -90px;
+      top: -90px;
+      background: rgba(255,255,255,.14);
+    }
+
+    .brand-row { display:flex; align-items:center; gap:14px; margin-bottom:22px; position:relative; z-index:1; }
+    .logo-mark {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.32);
+      font-size: 28px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.24);
+    }
+    .eyebrow { font-size:12px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; opacity:.82; }
+    h1 { margin: 0; font-size: clamp(34px, 7vw, 58px); line-height: 1; letter-spacing: -0.05em; position:relative; z-index:1; }
+    .lead { margin: 16px 0 0; font-size: 17px; line-height: 1.55; max-width: 620px; color: rgba(255,255,255,.88); position:relative; z-index:1; }
+
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .card { background: rgba(255,255,255,.96); border: 1px solid var(--line); border-radius: 22px; padding: 22px; box-shadow: 0 10px 28px rgba(180, 83, 9, 0.08); }
+    .card h2 { margin: 0 0 8px; font-size: 20px; letter-spacing:-.02em; }
+    .card p { margin: 0 0 18px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+    .pill { display:inline-flex; align-items:center; gap:8px; background:var(--accent-soft); color:var(--accent-dark); border:1px solid var(--line); border-radius:999px; padding:8px 12px; font-size:13px; font-weight:700; margin-bottom:14px; }
+    a.cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 18px; border-radius: 14px; font-size: 14px; font-weight: 700; text-decoration: none; border: 1px solid var(--line); background: white; color: var(--text); transition: 0.15s ease; }
+    a.cta:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08); }
+    a.cta.primary { background: linear-gradient(135deg, var(--accent), #f97316); color: #1f2937; border-color: var(--accent); box-shadow: 0 8px 20px rgba(245, 158, 11, 0.18); }
+    .footer-note { margin-top: 24px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .footer-note a { color: var(--accent-dark); font-weight: 700; }
+    @media (max-width: 720px) {
+      .container { padding-top: 18px; }
+      .cards { grid-template-columns: 1fr; }
+      .hero { border-radius: 22px; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Mango Loan</h1>
+    <section class="hero">
+      <div class="brand-row">
+        <div class="logo-mark" aria-hidden="true">🥭</div>
+        <div>
+          <div class="eyebrow">Mango Loan</div>
+          <div style="font-weight:700; opacity:.9;">Simple micro-loan tracking</div>
+        </div>
+      </div>
+      <h1>Mango Loan</h1>
+      <p class="lead">A clean place to manage loans, track payments, and give borrowers a simple view of their balance.</p>
+    </section>
+
     <div class="cards">
       <div class="card">
-        <h2>Admin</h2>
-        <a class="cta" href="admin.html">Open admin dashboard</a>
+        <div class="pill">Admin workspace</div>
+        <h2>Admin dashboard</h2>
+        <p>Create borrowers, manage loans, record payments, and review balances.</p>
+        <a class="cta primary" href="admin.html">Open admin dashboard</a>
       </div>
 
       <div class="card">
+        <div class="pill">Borrower access</div>
         <h2>Borrower portal</h2>
-        <p>View your balance, due date, and payment history.</p>
+        <p>Borrowers can sign in to view borrowed amounts, payments, due date, and balance.</p>
         <a class="cta" href="borrower.html">Open borrower portal</a>
       </div>
     </div>
 
     <p class="footer-note">
-      Data lives in Supabase. Bookmark this page as your starting point, or go straight to <a href="admin.html" style="color:var(--text);font-weight:600;">admin.html</a> for the tracker.
+      Data lives in Supabase. Bookmark this page as your starting point, or go straight to <a href="admin.html">admin.html</a> for the tracker.
     </p>
   </div>
 </body>

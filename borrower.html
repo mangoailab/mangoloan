@@ -8,14 +8,15 @@
   <style>
     :root {
       color-scheme: light;
-      --bg: #f6f8fb;
+      --bg: #fff8ed;
       --card: #ffffff;
-      --text: #111827;
+      --text: #1f2937;
       --muted: #6b7280;
-      --line: #e5e7eb;
-      --soft: #f8fafc;
-      --accent: #2563eb;
-      --accent-dark: #1e3a8a;
+      --line: #f1d9b5;
+      --soft: #fff7ed;
+      --accent: #f59e0b;
+      --accent-dark: #92400e;
+      --accent-green: #16a34a;
       --success: #15803d;
       --warning: #b45309;
     }
@@ -23,15 +24,16 @@
     body {
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background:
-        radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 32rem),
-        linear-gradient(180deg, #eef4ff 0%, var(--bg) 260px);
+        radial-gradient(circle at top left, rgba(245, 158, 11, 0.22), transparent 28rem),
+        radial-gradient(circle at bottom right, rgba(22, 163, 74, 0.12), transparent 24rem),
+        var(--bg);
       margin: 0;
       padding: 24px 16px;
       color: var(--text);
     }
     .wrap { max-width: 980px; margin: 0 auto; }
     .card { background:rgba(255,255,255,.96); border:1px solid var(--line); border-radius:22px; padding:22px; margin-bottom:16px; box-shadow:0 10px 28px rgba(15,23,42,.06); }
-    .hero { border:0; color:white; background:linear-gradient(135deg, #111827, #1e3a8a 55%, #2563eb); box-shadow:0 18px 40px rgba(30,58,138,.24); }
+    .hero { border:0; color:white; background:linear-gradient(135deg, #78350f 0%, #f59e0b 58%, #16a34a 100%); box-shadow:0 18px 44px rgba(146,64,14,.22); }
     .hero .muted, .hero .nav-link { color:rgba(255,255,255,.78); }
     .hero .nav-link { color:white; }
     .hero button.secondary { border-color:rgba(255,255,255,.5); background:rgba(255,255,255,.12); color:white; }
@@ -40,9 +42,9 @@
     h2 { font-size:24px; }
     h3 { font-size:18px; }
     input { width:100%; padding:13px 14px; margin:8px 0 12px; border:1px solid #d1d5db; border-radius:14px; font-size:16px; box-sizing:border-box; background:white; }
-    input:focus { outline:3px solid rgba(37,99,235,.16); border-color:var(--accent); }
-    button { padding:12px 16px; border-radius:14px; border:1px solid #111827; background:#111827; color:white; cursor:pointer; font-weight:700; }
-    button.secondary { background:white; color:#111827; }
+    input:focus { outline:3px solid rgba(245,158,11,.18); border-color:var(--accent); }
+    button { padding:12px 16px; border-radius:14px; border:1px solid var(--accent); background:linear-gradient(135deg,var(--accent),#f97316); color:#1f2937; cursor:pointer; font-weight:700; box-shadow:0 8px 20px rgba(245,158,11,.16); }
+    button.secondary { background:white; color:#1f2937; box-shadow:none; }
     button:disabled { opacity:.6; cursor:not-allowed; }
     .muted { color:var(--muted); }
     .small { font-size:13px; }
@@ -54,7 +56,7 @@
     tbody tr:hover { background:#f8fafc; }
     th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:#f9fafb; }
     .stats { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:14px; }
-    .stat { background:linear-gradient(180deg,#fff,#f8fafc); border:1px solid var(--line); border-radius:18px; padding:16px; }
+    .stat { background:linear-gradient(180deg,#fff,#fffaf0); border:1px solid var(--line); border-radius:18px; padding:16px; }
     .stat-label { color:var(--muted); font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
     .value { font-size:28px; font-weight:800; margin-top:6px; letter-spacing:-.03em; }
     .value.balance { color:var(--warning); }
@@ -64,9 +66,9 @@
     .summary-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
     .pill { background:#f3f4f6; border:1px solid var(--line); border-radius:999px; padding:8px 12px; font-size:13px; color:#374151; font-weight:600; }
     .badge { display:inline-flex; align-items:center; border-radius:999px; padding:5px 10px; font-size:12px; font-weight:800; }
-    .badge-borrowed { background:#dbeafe; color:#1e40af; }
+    .badge-borrowed { background:#fff1cc; color:#92400e; }
     .badge-payment { background:#dcfce7; color:#166534; }
-    .amount-borrowed { color:#1e40af; font-weight:800; }
+    .amount-borrowed { color:#92400e; font-weight:800; }
     .amount-payment { color:#166534; font-weight:800; }
     .section-title { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
     @media (max-width: 640px) {
@@ -78,7 +80,7 @@
       #signedInActions { width:100%; }
       #signedInActions button { flex:1; }
     }
-    a.nav-link { color:#2563eb; font-size:14px; font-weight:700; text-decoration:none; }
+    a.nav-link { color:var(--accent-dark); font-size:14px; font-weight:700; text-decoration:none; }
     a.nav-link:hover { text-decoration:underline; }
   </style>
 </head>
@@ -87,7 +89,7 @@
     <div class="card hero">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
         <div style="flex:1; min-width:220px;">
-          <h1>Borrower Portal</h1>
+          <h1>🥭 Borrower Portal</h1>
           <p class="muted">View your balance, borrowed amounts, and payment history in one place.</p>
           <p class="muted" style="margin-top:12px;">
             <a class="nav-link" href="index.html">Home</a>
