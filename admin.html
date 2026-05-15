@@ -210,19 +210,33 @@
 
     .auth-header {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 14px;
       margin-bottom: 14px;
     }
 
     .auth-links {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
       align-items: center;
-      padding-top: 8px;
+      width: 100%;
+    }
+
+    .auth-link-button {
+      border: 1px solid var(--line);
+      background: #fffaf0;
+      color: var(--accent-dark);
+      border-radius: 14px;
+      padding: 12px 14px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+      flex: 1 1 calc(50% - 8px);
     }
 
     .stats {
@@ -452,8 +466,8 @@
       <div class="auth-header">
         <div class="brand-heading"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-loan-logo.jpg" alt="" /></span><h3>Admin sign in</h3></div>
         <div class="auth-links">
-          <a href="index.html" class="nav-link">Home</a>
-          <a href="borrower.html" class="nav-link">Borrower portal</a>
+          <a href="index.html" class="auth-link-button">Home</a>
+          <a href="borrower.html" class="auth-link-button">Borrower portal</a>
         </div>
       </div>
       <div class="field"><label for="staffEmail">Email</label><input id="staffEmail" type="email" autocomplete="username" placeholder="you@company.com" /></div>
