@@ -190,6 +190,18 @@
       box-shadow: none;
     }
 
+    .hero .top-actions > button.nav-link,
+    .hero .top-actions > .file-label.nav-link {
+      width: auto;
+      min-height: auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
     .danger-link {
       color: var(--danger);
       background: transparent;
@@ -522,10 +534,13 @@
           <a href="index.html" class="nav-link">Home</a>
           <span class="nav-separator" aria-hidden="true">|</span>
           <a href="borrower.html" class="nav-link">Borrower portal</a>
-          <label class="file-label secondary" for="importFile">Import Data</label>
+          <span class="nav-separator" aria-hidden="true">|</span>
+          <label class="file-label nav-link" for="importFile">Import Data</label>
           <input id="importFile" type="file" accept="application/json" class="hidden" />
-          <button id="exportBtn" class="secondary">Export Data</button>
-          <button type="button" id="signOutBtn" class="secondary">Sign out</button>
+          <span class="nav-separator" aria-hidden="true">|</span>
+          <button id="exportBtn" class="nav-link">Export Data</button>
+          <span class="nav-separator" aria-hidden="true">|</span>
+          <button type="button" id="signOutBtn" class="nav-link">Sign out</button>
         </div>
       </div>
       <p class="muted hero-description">Manage borrowers, loans, payments, and balances in one place.</p>
