@@ -1082,7 +1082,7 @@
           );
         } else {
           showStaffAuthGate(
-            "You are signed in, but this account is not in admin_users. The admin dashboard is only for admin accounts. Sign out and sign in with an admin account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
+            "You are signed in, but this account is not set up as an admin. Sign out and sign in with an admin account, or use the borrower portal.",
             { showSignOut: true }
           );
         }
@@ -1457,7 +1457,7 @@
           showStaffAuthGate("Could not verify staff access: " + access2.verifyError, { showSignOut: true });
         } else {
           showStaffAuthGate(
-            "You are signed in, but this account is not in admin_users. The admin dashboard is only for admin accounts. Sign out and sign in with an admin account, or use the borrower portal. In Supabase: Table Editor → admin_users → add a row with user_id = your Auth user UUID.",
+            "You are signed in, but this account is not set up as an admin. Sign out and sign in with an admin account, or use the borrower portal.",
             { showSignOut: true }
           );
         }
