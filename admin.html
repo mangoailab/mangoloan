@@ -2033,7 +2033,7 @@
       if (!name) return;
 
       const { error } = await supabaseClient.from("borrowers").insert([
-        { name, email, phone, zelle, notes }
+        { name, email, phone, zelle, notes, auth_user_id: null }
       ]);
 
       if (error) {
@@ -2185,7 +2185,8 @@
               email: b.email || "",
               phone: b.phone || "",
               zelle: b.zelle || "",
-              notes: b.notes || ""
+              notes: b.notes || "",
+              auth_user_id: null
             }]);
             if (insErr) {
               importFail.push((b.name || b.email || "row") + ": " + (insErr.message || insErr.code || "error"));
