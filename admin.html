@@ -2032,14 +2032,38 @@
 
       if (!name) return;
 
-      const { error } = await supabaseClient.from("borrowers").insert([
+      let insertedBorrower = null;
+      let insertResult = await supabaseClient.from("borrowers").insert([
         { name, email, phone, zelle, notes, auth_user_id: null }
-      ]);
+      ]).select().single();
 
-      if (error) {
-        console.error(error);
-        showMessage("Could not add borrower.");
+      if (insertResult.error) {
+        console.warn("Borrower insert with null auth_user_id failed; retrying without auth_user_id.", insertResult.error);
+        insertResult = await supabaseClient.from("borrowers").insert([
+          { name, email, phone, zelle, notes }
+        ]).select().single();
+      }
+
+      if (insertResult.error) {
+        console.error(insertResult.error);
+        showMessage("Could not add borrower: " + (insertResult.error.message || "unknown error"));
         return;
+      }
+
+      insertedBorrower = insertResult.data;
+      let addBorrowerMessage = "Borrower added.";
+      if (insertedBorrower?.auth_user_id) {
+        const { data: userData } = await supabaseClient.auth.getUser();
+        if (userData?.user?.id && insertedBorrower.auth_user_id === userData.user.id) {
+          const { error: clearLinkError } = await supabaseClient
+            .from("borrowers")
+            .update({ auth_user_id: null })
+            .eq("id", insertedBorrower.id);
+          if (clearLinkError) {
+            console.warn("Could not clear default borrower auth_user_id.", clearLinkError);
+            addBorrowerMessage = "Borrower added, but it was auto-linked to your admin user. Run the Supabase no-default SQL fix, then unlink this borrower in Edit.";
+          }
+        }
       }
 
       document.getElementById("borrowerName").value = "";
@@ -2049,7 +2073,7 @@
       document.getElementById("borrowerNotes").value = "";
 
       await loadAllData();
-      showMessage("Borrower added.");
+      showMessage(addBorrowerMessage);
     });
 
     document.getElementById("addLoanBtn").addEventListener("click", async () => {
