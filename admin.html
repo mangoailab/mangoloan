@@ -208,6 +208,23 @@
       width: 100%;
     }
 
+    .auth-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .auth-links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding-top: 8px;
+    }
+
     .stats {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -432,13 +449,18 @@
 <body>
   <div id="authGate" class="container auth-gate-wrap">
     <div class="card auth-gate-card">
-      <div class="brand-heading"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-loan-logo.jpg" alt="" /></span><h3>Admin sign in</h3></div>
+      <div class="auth-header">
+        <div class="brand-heading"><span class="brand-mark" aria-hidden="true"><img src="assets/mango-loan-logo.jpg" alt="" /></span><h3>Admin sign in</h3></div>
+        <div class="auth-links">
+          <a href="index.html" class="nav-link">Home</a>
+          <a href="borrower.html" class="nav-link">Borrower portal</a>
+        </div>
+      </div>
       <div class="field"><label for="staffEmail">Email</label><input id="staffEmail" type="email" autocomplete="username" placeholder="you@company.com" /></div>
       <div class="field"><label for="staffPassword">Password</label><input id="staffPassword" type="password" autocomplete="current-password" /></div>
       <div class="actions" style="margin-top:14px;">
         <button type="button" id="staffSignInBtn" class="primary">Sign in</button>
         <button type="button" id="staffForgotPasswordBtn">Reset admin password</button>
-        <a href="index.html" class="file-label" style="text-decoration:none;">Home</a>
       </div>
       <p id="staffAuthMsg" class="muted" style="margin-top:12px;"></p>
       <div id="staffGateExtra" class="hidden" style="margin-top:14px;">
