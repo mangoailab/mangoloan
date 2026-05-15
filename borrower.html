@@ -56,8 +56,18 @@
     .field input { margin:0; }
     #authCard, #forgotPasswordCard, #passwordResetCard, #changePasswordCard { max-width:440px; width:100%; margin:0 auto 16px; }
     #authCard h2, #forgotPasswordCard h2, #passwordResetCard h2, #changePasswordCard h3 { font-size:20px; margin:0 0 14px; }
-    input { width:100%; padding:13px 14px; margin:8px 0 12px; border:1px solid #d1d5db; border-radius:14px; font-size:16px; box-sizing:border-box; background:white; }
-    input:focus { outline:3px solid rgba(245,158,11,.18); border-color:var(--accent); }
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      min-height: 46px;
+      font-size: 16px;
+      box-sizing: border-box;
+      background: white;
+      color: var(--text);
+      outline-color: var(--accent);
+    }
     button {
       border: 1px solid var(--line);
       background: white;
