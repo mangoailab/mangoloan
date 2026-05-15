@@ -628,6 +628,8 @@
           <div class="field"><label>Phone</label><input id="borrowerPhone" /></div>
           <div class="field"><label>Zelle</label><input id="borrowerZelle" /></div>
           <div class="field"><label>Notes</label><textarea id="borrowerNotes"></textarea></div>
+          <p class="small muted" style="margin-top:-4px;">If an email is entered, Add Borrower will also create and link a borrower portal login.</p>
+          <p id="addBorrowerResult" class="small muted hidden"></p>
           <button id="addBorrowerBtn" class="primary">Add Borrower</button>
         </div>
 
@@ -1796,6 +1798,36 @@
       showMessage("Temporary password set.");
     }
 
+    async function createPortalUserForBorrower(id, email, result) {
+      const { data, error } = await supabaseClient.functions.invoke("create-borrower-user", {
+        body: {
+          borrowerId: id,
+          email,
+          redirectTo: new URL("borrower.html", window.location.href).href.replace(/[#?].*$/, "")
+        }
+      });
+
+      if (error || data?.error) {
+        console.error(error || data);
+        const message = data?.hint || data?.error || error?.message || "Could not create portal user.";
+        if (result) {
+          result.textContent = message;
+          result.classList.remove("hidden");
+        }
+        return { ok: false, message };
+      }
+
+      const emailLine = data.email ? ` Login email: ${data.email}.` : "";
+      const passwordLine = data.tempPassword ? ` Temporary password: ${data.tempPassword}` : "";
+      const resetLine = data.resetLink ? ` Reset link: ${data.resetLink}` : "";
+      const message = `${data.message || "Portal user created and linked."} User ID: ${data.userId}.${emailLine}${passwordLine}${resetLine}`;
+      if (result) {
+        result.textContent = message;
+        result.classList.remove("hidden");
+      }
+      return { ok: true, message, data };
+    }
+
     async function createBorrowerPortalUser() {
       const id = document.getElementById("editBorrowerSelect").value;
       const email = document.getElementById("editBorrowerEmail").value.trim();
@@ -1808,17 +1840,8 @@
       result.textContent = "Creating portal user...";
       result.classList.remove("hidden");
 
-      const { data, error } = await supabaseClient.functions.invoke("create-borrower-user", {
-        body: {
-          borrowerId: id,
-          email,
-          redirectTo: new URL("borrower.html", window.location.href).href.replace(/[#?].*$/, "")
-        }
-      });
-
-      if (error || data?.error) {
-        console.error(error || data);
-        result.textContent = data?.hint || data?.error || error?.message || "Could not create portal user.";
+      const created = await createPortalUserForBorrower(id, email, result);
+      if (!created.ok) {
         btn.disabled = false;
         showMessage("Could not create portal user.");
         return;
@@ -1826,10 +1849,7 @@
 
       await loadAllData();
       loadBorrowerIntoEditor(id);
-      const emailLine = data.email ? ` Login email: ${data.email}.` : "";
-      const passwordLine = data.tempPassword ? ` Temporary password: ${data.tempPassword}` : "";
-      const resetLine = data.resetLink ? ` Reset link: ${data.resetLink}` : "";
-      result.textContent = `${data.message || "Portal user created and linked."} User ID: ${data.userId}.${emailLine}${passwordLine}${resetLine}`;
+      result.textContent = created.message;
       result.classList.remove("hidden");
       showMessage("Portal user created and linked.");
     }
@@ -2032,6 +2052,10 @@
 
       if (!name) return;
 
+      const result = document.getElementById("addBorrowerResult");
+      result.textContent = email ? "Adding borrower and creating portal login..." : "Adding borrower...";
+      result.classList.remove("hidden");
+
       let insertedBorrower = null;
       let insertResult = await supabaseClient.from("borrowers").insert([
         { name, email, phone, zelle, notes, auth_user_id: null }
@@ -2046,7 +2070,9 @@
 
       if (insertResult.error) {
         console.error(insertResult.error);
-        showMessage("Could not add borrower: " + (insertResult.error.message || "unknown error"));
+        const errorMessage = "Could not add borrower: " + (insertResult.error.message || "unknown error");
+        result.textContent = errorMessage;
+        showMessage(errorMessage);
         return;
       }
 
@@ -2064,6 +2090,19 @@
             addBorrowerMessage = "Borrower added, but it was auto-linked to your admin user. Run the Supabase no-default SQL fix, then unlink this borrower in Edit.";
           }
         }
+      }
+
+      if (email && insertedBorrower?.id && addBorrowerMessage === "Borrower added.") {
+        const portalCreated = await createPortalUserForBorrower(insertedBorrower.id, email, result);
+        addBorrowerMessage = portalCreated.ok
+          ? "Borrower added and portal login created."
+          : "Borrower added, but portal login was not created: " + portalCreated.message;
+      } else if (!email) {
+        result.textContent = "Borrower added. Add an email later to create a portal login.";
+        result.classList.remove("hidden");
+      } else {
+        result.textContent = addBorrowerMessage;
+        result.classList.remove("hidden");
       }
 
       document.getElementById("borrowerName").value = "";
