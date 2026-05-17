@@ -1082,15 +1082,29 @@
       return false;
     }
 
-    function findVerifiedTotpFactor(factorsData) {
+    function totpFactorsFromList(factorsData) {
       var totpFactors = factorsData && Array.isArray(factorsData.totp) ? factorsData.totp : [];
       var allFactors = factorsData && Array.isArray(factorsData.all) ? factorsData.all : [];
-      var factors = totpFactors.concat(allFactors.filter(function (factor) {
+      return totpFactors.concat(allFactors.filter(function (factor) {
         return factor && (factor.factor_type === "totp" || factor.factorType === "totp");
-      }));
-      return factors.find(function (factor) {
+      })).filter(function (factor, index, factors) {
+        return factor && factor.id && factors.findIndex(function (item) { return item && item.id === factor.id; }) === index;
+      });
+    }
+
+    function findVerifiedTotpFactor(factorsData) {
+      return totpFactorsFromList(factorsData).find(function (factor) {
         return factor && factor.status === "verified";
       }) || null;
+    }
+
+    async function removeUnverifiedStaffMfaFactors(factorsData) {
+      var staleFactors = totpFactorsFromList(factorsData).filter(function (factor) {
+        return factor && factor.id && factor.status !== "verified";
+      });
+      for (var i = 0; i < staleFactors.length; i += 1) {
+        await supabaseClient.auth.mfa.unenroll({ factorId: staleFactors[i].id });
+      }
     }
 
     async function beginStaffMfaChallenge(factor) {
@@ -1102,10 +1116,23 @@
     }
 
     async function beginStaffMfaEnrollment() {
+      var listedBeforeEnroll = await supabaseClient.auth.mfa.listFactors();
+      if (!listedBeforeEnroll.error) await removeUnverifiedStaffMfaFactors(listedBeforeEnroll.data);
+
       var enrolled = await supabaseClient.auth.mfa.enroll({
         factorType: "totp",
         friendlyName: "Mango Loan Admin " + new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)
       });
+
+      if (enrolled.error && /maximum number of verified factors/i.test(enrolled.error.message || "")) {
+        var listedAfterError = await supabaseClient.auth.mfa.listFactors();
+        if (!listedAfterError.error) await removeUnverifiedStaffMfaFactors(listedAfterError.data);
+        enrolled = await supabaseClient.auth.mfa.enroll({
+          factorType: "totp",
+          friendlyName: "Mango Loan Admin " + new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)
+        });
+      }
+
       if (enrolled.error) throw enrolled.error;
       staffMfaFactorId = enrolled.data.id;
       document.getElementById("staffMfaQr").src = enrolled.data.totp.qr_code;
