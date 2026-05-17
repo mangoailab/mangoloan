@@ -59,18 +59,8 @@
   - dark brown/charcoal text
 - Home page now has a product-style hero section.
 - Admin and Borrower pages now share the same warm Mango Loan visual language.
-- Added cute smiling mango SVG mascot: `assets/mango-cute-mark.svg`.
-- Used the cute mango mark across Home, Admin, and Borrower headers.
-- Added generated logo option sheets:
-  - `assets/logo-options/mango-loan-logo-options-1.png`
-  - `assets/logo-options/mango-loan-logo-options-2.png`
-  - `assets/logo-options/mango-loan-logo-options-3.png`
-  - `assets/logo-options/mango-loan-logo-options-4.png`
-  - `assets/logo-options/mango-loan-cute-logo-options-1.png`
-  - `assets/logo-options/mango-loan-cute-logo-options-2.png`
-  - `assets/logo-options/mango-loan-cute-logo-options-3.png`
-  - `assets/logo-options/mango-loan-cute-logo-options-4.png`
-- Generated logo text was checked; options spell “Mango Loan” correctly.
+- Earlier generated mascot/logo-option assets were later removed after Lawrence decided to keep only the current logo: `assets/mango-loan-logo.jpg`.
+- Do not reintroduce the cute mascot or generated option sheets unless Lawrence explicitly asks.
 
 ## Key commits
 
