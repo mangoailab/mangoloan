@@ -761,17 +761,19 @@
 
     <section id="tab-borrowers" class="tab-panel">
       <div class="card" style="max-width:760px; margin-bottom:16px;">
-        <h3>Create Borrower</h3>
-        <div id="addBorrowerPanel">
+        <button id="showAddBorrowerBtn" type="button" class="primary">Add Borrower</button>
+        <div id="addBorrowerPanel" class="hidden">
+          <h3>Create Borrower</h3>
           <div class="field"><label>Name</label><input id="borrowerName" /></div>
           <div class="field"><label>Email</label><input id="borrowerEmail" /></div>
           <div class="field"><label>Phone</label><input id="borrowerPhone" /></div>
           <div class="field"><label>Zelle</label><input id="borrowerZelle" /></div>
           <div class="field"><label>Notes</label><textarea id="borrowerNotes"></textarea></div>
-          <p class="small muted" style="margin-top:-4px;">If an email is entered, Add Borrower will also create and link a borrower portal login.</p>
-          <p id="addBorrowerResult" class="small muted hidden"></p>
-          <button id="addBorrowerBtn" class="primary">Add Borrower</button>
+          <p class="small muted" style="margin-top:-4px;">Create Borrower + Portal Login will create the borrower and link the borrower portal login in one step.</p>
+          <button id="addBorrowerBtn" type="button" class="primary">Create Borrower + Portal Login</button>
+          <button id="cancelAddBorrowerBtn" type="button">Cancel</button>
         </div>
+        <p id="addBorrowerResult" class="small muted hidden"></p>
       </div>
 
       <div class="card">
@@ -2030,6 +2032,39 @@
       showMessage("Borrower updated.");
     }
 
+    async function invokeBorrowerPortalUser(id, email, action = "create-user") {
+      const body = {
+        action,
+        borrowerId: id,
+        email
+      };
+      if (action === "create-user") {
+        body.redirectTo = new URL("borrower.html", window.location.href).href.replace(/[#?].*$/, "");
+      }
+      const { data, error } = await supabaseClient.functions.invoke("create-borrower-user", { body });
+      if (error || data?.error) {
+        console.error(error || data);
+        throw new Error(data?.hint || data?.error || error?.message || "Could not manage portal user.");
+      }
+      return data;
+    }
+
+    function borrowerPortalUserMessage(data) {
+      const emailLine = data.email ? ` Login email: ${data.email}.` : "";
+      const passwordLine = data.tempPassword ? ` Temporary password: ${data.tempPassword}` : "";
+      const resetLine = data.resetLink ? ` Reset link: ${data.resetLink}` : "";
+      return `${data.message || "Portal user updated."} User ID: ${data.userId}.${emailLine}${passwordLine}${resetLine}`;
+    }
+
+    async function createOrLinkBorrowerPortalUser(id, email) {
+      try {
+        return await invokeBorrowerPortalUser(id, email, "create-user");
+      } catch (error) {
+        if (!/already|registered|exists/i.test(error.message || "")) throw error;
+        return invokeBorrowerPortalUser(id, email, "link-existing-user");
+      }
+    }
+
     async function linkBorrowerPortalUser(id, btn) {
       const email = borrowerCardField(id, "Email").value.trim();
       const result = borrowerCardResult(id);
@@ -2040,29 +2075,20 @@
       result.textContent = "Finding existing portal user...";
       result.classList.remove("hidden");
 
-      const { data, error } = await supabaseClient.functions.invoke("create-borrower-user", {
-        body: {
-          action: "link-existing-user",
-          borrowerId: id,
-          email
-        }
-      });
-
-      if (error || data?.error) {
-        console.error(error || data);
-        result.textContent = data?.error || error?.message || "Could not link existing portal user.";
+      try {
+        const data = await invokeBorrowerPortalUser(id, email, "link-existing-user");
+        const message = borrowerPortalUserMessage(data);
+        await loadAllData();
+        toggleBorrowerCardEdit(id, true);
+        const freshResult = borrowerCardResult(id);
+        freshResult.textContent = message;
+        freshResult.classList.remove("hidden");
+        showMessage("Existing portal user linked.");
+      } catch (error) {
+        result.textContent = error.message || "Could not link existing portal user.";
         if (btn) btn.disabled = false;
         showMessage("Could not link existing portal user.");
-        return;
       }
-
-      const message = `${data.message || "Existing portal user linked."} Login email: ${data.email}. User ID: ${data.userId}.`;
-      await loadAllData();
-      toggleBorrowerCardEdit(id, true);
-      const freshResult = borrowerCardResult(id);
-      freshResult.textContent = message;
-      freshResult.classList.remove("hidden");
-      showMessage("Existing portal user linked.");
     }
 
     async function setBorrowerPortalPassword(id, btn) {
@@ -2099,33 +2125,22 @@
     }
 
     async function createPortalUserForBorrower(id, email, result) {
-      const { data, error } = await supabaseClient.functions.invoke("create-borrower-user", {
-        body: {
-          borrowerId: id,
-          email,
-          redirectTo: new URL("borrower.html", window.location.href).href.replace(/[#?].*$/, "")
+      try {
+        const data = await createOrLinkBorrowerPortalUser(id, email);
+        const message = borrowerPortalUserMessage(data);
+        if (result) {
+          result.textContent = message;
+          result.classList.remove("hidden");
         }
-      });
-
-      if (error || data?.error) {
-        console.error(error || data);
-        const message = data?.hint || data?.error || error?.message || "Could not create portal user.";
+        return { ok: true, message, data };
+      } catch (error) {
+        const message = error.message || "Could not create portal user.";
         if (result) {
           result.textContent = message;
           result.classList.remove("hidden");
         }
         return { ok: false, message };
       }
-
-      const emailLine = data.email ? ` Login email: ${data.email}.` : "";
-      const passwordLine = data.tempPassword ? ` Temporary password: ${data.tempPassword}` : "";
-      const resetLine = data.resetLink ? ` Reset link: ${data.resetLink}` : "";
-      const message = `${data.message || "Portal user created and linked."} User ID: ${data.userId}.${emailLine}${passwordLine}${resetLine}`;
-      if (result) {
-        result.textContent = message;
-        result.classList.remove("hidden");
-      }
-      return { ok: true, message, data };
     }
 
     async function createBorrowerPortalUser(id, btn) {
@@ -2315,6 +2330,24 @@
       showMessage("Payment updated.");
     });
 
+    function toggleAddBorrowerPanel(show = true) {
+      document.getElementById("addBorrowerPanel").classList.toggle("hidden", !show);
+      document.getElementById("showAddBorrowerBtn").classList.toggle("hidden", show);
+      if (show) document.getElementById("borrowerName").focus();
+    }
+
+    function clearAddBorrowerForm() {
+      document.getElementById("borrowerName").value = "";
+      document.getElementById("borrowerEmail").value = "";
+      document.getElementById("borrowerPhone").value = "";
+      document.getElementById("borrowerZelle").value = "";
+      document.getElementById("borrowerNotes").value = "";
+      toggleAddBorrowerPanel(false);
+    }
+
+    document.getElementById("showAddBorrowerBtn").addEventListener("click", () => toggleAddBorrowerPanel(true));
+    document.getElementById("cancelAddBorrowerBtn").addEventListener("click", clearAddBorrowerForm);
+
     document.getElementById("addBorrowerBtn").addEventListener("click", async () => {
       const name = document.getElementById("borrowerName").value.trim();
       const email = document.getElementById("borrowerEmail").value.trim();
@@ -2322,10 +2355,14 @@
       const zelle = document.getElementById("borrowerZelle").value.trim();
       const notes = document.getElementById("borrowerNotes").value.trim();
 
-      if (!name) return;
+      if (!name) return showMessage("Enter the borrower name.");
+      if (!email) return showMessage("Enter the borrower email to create the portal login.");
 
       const result = document.getElementById("addBorrowerResult");
-      result.textContent = email ? "Adding borrower and creating portal login..." : "Adding borrower...";
+      const btn = document.getElementById("addBorrowerBtn");
+      btn.disabled = true;
+      btn.textContent = "Creating borrower and portal login...";
+      result.textContent = "Creating borrower and portal login...";
       result.classList.remove("hidden");
 
       let insertedBorrower = null;
@@ -2345,6 +2382,8 @@
         const errorMessage = "Could not add borrower: " + (insertResult.error.message || "unknown error");
         result.textContent = errorMessage;
         showMessage(errorMessage);
+        btn.disabled = false;
+        btn.textContent = "Create Borrower + Portal Login";
         return;
       }
 
@@ -2364,25 +2403,19 @@
         }
       }
 
-      if (email && insertedBorrower?.id && addBorrowerMessage === "Borrower added.") {
+      if (insertedBorrower?.id && addBorrowerMessage === "Borrower added.") {
         const portalCreated = await createPortalUserForBorrower(insertedBorrower.id, email, result);
         addBorrowerMessage = portalCreated.ok
           ? "Borrower added and portal login created."
           : "Borrower added, but portal login was not created: " + portalCreated.message;
-      } else if (!email) {
-        result.textContent = "Borrower added. Add an email later to create a portal login.";
-        result.classList.remove("hidden");
       } else {
         result.textContent = addBorrowerMessage;
         result.classList.remove("hidden");
       }
 
-      document.getElementById("borrowerName").value = "";
-      document.getElementById("borrowerEmail").value = "";
-      document.getElementById("borrowerPhone").value = "";
-      document.getElementById("borrowerZelle").value = "";
-      document.getElementById("borrowerNotes").value = "";
-
+      clearAddBorrowerForm();
+      btn.disabled = false;
+      btn.textContent = "Create Borrower + Portal Login";
       await loadAllData();
       showMessage(addBorrowerMessage);
     });
