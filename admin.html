@@ -493,6 +493,27 @@
       .actions { width: 100%; }
       .actions > * { flex: 1 1 calc(50% - 8px); }
       .hero .top-actions > * { flex: 0 0 auto; }
+
+      .payment-entry-card .grid-3 {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .payment-date-field,
+      .payment-date-field input {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .payment-date-field input[type="date"] {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      .payment-form-actions button {
+        flex: 1 1 100%;
+        width: 100%;
+      }
     }
 
     @media (max-width: 640px) {
