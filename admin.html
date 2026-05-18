@@ -166,6 +166,10 @@
       box-shadow: 0 8px 20px rgba(255, 183, 3, 0.24);
     }
 
+    .wide-add-button {
+      width: 100%;
+    }
+
     button:hover, .file-label:hover {
       transform: translateY(-1px);
       box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
@@ -761,7 +765,7 @@
 
     <section id="tab-borrowers" class="tab-panel">
       <div class="card" style="max-width:760px; margin-bottom:16px;">
-        <button id="showAddBorrowerBtn" type="button" class="primary">Add Borrower</button>
+        <button id="showAddBorrowerBtn" type="button" class="primary wide-add-button">Add Borrower</button>
         <div id="addBorrowerPanel" class="hidden">
           <h3>Create Borrower</h3>
           <div class="field"><label>Name</label><input id="borrowerName" /></div>
