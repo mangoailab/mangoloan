@@ -449,19 +449,25 @@
       color: #991b1b;
     }
 
-    .payment-entry-card .field {
+    .payment-entry-card .field,
+    .loan-entry-card .field {
       min-width: 0;
     }
 
     .payment-entry-card input,
     .payment-entry-card select,
     .payment-entry-card textarea,
-    .payment-entry-card button {
+    .payment-entry-card button,
+    .loan-entry-card input,
+    .loan-entry-card select,
+    .loan-entry-card textarea,
+    .loan-entry-card button {
       max-width: 100%;
       min-width: 0;
     }
 
-    .payment-date-field input {
+    .payment-date-field input,
+    .loan-date-field input {
       width: 100%;
     }
 
@@ -499,18 +505,22 @@
       }
 
       .payment-date-field,
-      .payment-date-field input {
+      .payment-date-field input,
+      .loan-date-field,
+      .loan-date-field input {
         width: 100%;
         max-width: 100%;
         min-width: 0;
       }
 
-      .payment-date-field input[type="date"] {
+      .payment-date-field input[type="date"],
+      .loan-date-field input[type="date"] {
         -webkit-appearance: none;
         appearance: none;
       }
 
-      .payment-form-actions button {
+      .payment-form-actions button,
+      .loan-form-actions button {
         flex: 1 1 100%;
         width: 100%;
       }
@@ -561,18 +571,22 @@
       }
 
       .payment-date-field,
-      .payment-date-field input {
+      .payment-date-field input,
+      .loan-date-field,
+      .loan-date-field input {
         width: 100%;
         max-width: 100%;
         min-width: 0;
       }
 
-      .payment-date-field input[type="date"] {
+      .payment-date-field input[type="date"],
+      .loan-date-field input[type="date"] {
         -webkit-appearance: none;
         appearance: none;
       }
 
-      .payment-form-actions button {
+      .payment-form-actions button,
+      .loan-form-actions button {
         flex: 1 1 100%;
         width: 100%;
       }
@@ -704,16 +718,16 @@
       <div class="card"><div class="stat-label">Overdue</div><div class="stat-value" id="statOverdue">0</div></div>
     </div>
 
-      <div class="card" style="max-width:760px; margin-bottom:16px;">
+      <div class="card loan-entry-card" style="max-width:760px; margin-bottom:16px;">
         <h3>Create Loan</h3>
         <div id="addLoanPanel">
           <div class="field"><label>Borrower</label><select id="loanBorrower"></select></div>
           <div class="field"><label>Principal</label><input id="loanPrincipal" type="number" step="0.01" /></div>
           <div class="field"><label>Interest Rate %</label><input id="loanRate" type="number" step="0.01" /></div>
-          <div class="field"><label>Start Date</label><input id="loanStartDate" type="date" /></div>
-          <div class="field"><label>Due Date</label><input id="loanDueDate" type="date" /></div>
+          <div class="field loan-date-field"><label>Start Date</label><input id="loanStartDate" type="date" /></div>
+          <div class="field loan-date-field"><label>Due Date</label><input id="loanDueDate" type="date" /></div>
           <div class="field"><label>Notes</label><textarea id="loanNotes"></textarea></div>
-          <button id="addLoanBtn" class="primary">Add Loan</button>
+          <div class="actions loan-form-actions"><button id="addLoanBtn" class="primary">Add Loan</button></div>
         </div>
       </div>
 
