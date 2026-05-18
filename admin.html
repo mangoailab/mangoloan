@@ -626,6 +626,12 @@
       </div>
     </div>
 
+    <div class="tabs">
+      <button class="tab-btn" data-tab="edit">Edit</button>
+      <button class="tab-btn" data-tab="add">Add</button>
+    </div>
+
+    <section id="tab-loans" class="tab-panel active">
     <div class="stats">
       <div class="card"><div class="stat-label">Total Loaned</div><div class="stat-value" id="statLoaned">$0.00</div></div>
       <div class="card"><div class="stat-label">Collected</div><div class="stat-value" id="statCollected">$0.00</div></div>
@@ -667,12 +673,6 @@
       </div>
     </div>
 
-    <div class="tabs">
-      <button class="tab-btn" data-tab="edit">Edit</button>
-      <button class="tab-btn" data-tab="add">Add</button>
-    </div>
-
-    <section id="tab-loans" class="tab-panel active">
       <div class="card toolbar">
         <input id="searchInput" class="search" placeholder="Search borrower, phone, or Zelle" />
       </div>
@@ -695,7 +695,22 @@
     </section>
 
     <section id="tab-borrowers" class="tab-panel">
+      <div class="card" style="max-width:760px; margin-bottom:16px;">
+        <h3>Create Borrower</h3>
+        <div id="addBorrowerPanel">
+          <div class="field"><label>Name</label><input id="borrowerName" /></div>
+          <div class="field"><label>Email</label><input id="borrowerEmail" /></div>
+          <div class="field"><label>Phone</label><input id="borrowerPhone" /></div>
+          <div class="field"><label>Zelle</label><input id="borrowerZelle" /></div>
+          <div class="field"><label>Notes</label><textarea id="borrowerNotes"></textarea></div>
+          <p class="small muted" style="margin-top:-4px;">If an email is entered, Add Borrower will also create and link a borrower portal login.</p>
+          <p id="addBorrowerResult" class="small muted hidden"></p>
+          <button id="addBorrowerBtn" class="primary">Add Borrower</button>
+        </div>
+      </div>
+
       <div class="card">
+        <h3>Borrower List</h3>
         <div id="borrowersGrid" class="borrower-grid"></div>
       </div>
     </section>
@@ -789,26 +804,9 @@
 
     <section id="tab-add" class="tab-panel">
       <div class="card" style="max-width:760px;">
-        <h3>Add Record</h3>
-        <div class="field"><label>What do you want to add?</label>
-          <select id="addTypeSelect">
-            <option value="borrower">Borrower</option>
-            <option value="loan">Loan</option>
-          </select>
-        </div>
+        <h3>Add Loan</h3>
 
-        <div id="addBorrowerPanel">
-          <div class="field"><label>Name</label><input id="borrowerName" /></div>
-          <div class="field"><label>Email</label><input id="borrowerEmail" /></div>
-          <div class="field"><label>Phone</label><input id="borrowerPhone" /></div>
-          <div class="field"><label>Zelle</label><input id="borrowerZelle" /></div>
-          <div class="field"><label>Notes</label><textarea id="borrowerNotes"></textarea></div>
-          <p class="small muted" style="margin-top:-4px;">If an email is entered, Add Borrower will also create and link a borrower portal login.</p>
-          <p id="addBorrowerResult" class="small muted hidden"></p>
-          <button id="addBorrowerBtn" class="primary">Add Borrower</button>
-        </div>
-
-        <div id="addLoanPanel" class="hidden">
+        <div id="addLoanPanel">
           <div class="field"><label>Borrower</label><select id="loanBorrower"></select></div>
           <div class="field"><label>Principal</label><input id="loanPrincipal" type="number" step="0.01" /></div>
           <div class="field"><label>Interest Rate %</label><input id="loanRate" type="number" step="0.01" /></div>
@@ -2161,11 +2159,6 @@
     document.getElementById("paymentSortSelect").addEventListener("change", renderPayments);
 
     document.getElementById("editTypeSelect").addEventListener("change", (e) => setEditType(e.target.value));
-    document.getElementById("addTypeSelect").addEventListener("change", (e) => {
-      const type = e.target.value;
-      document.getElementById("addBorrowerPanel").classList.toggle("hidden", type !== "borrower");
-      document.getElementById("addLoanPanel").classList.toggle("hidden", type !== "loan");
-    });
     document.getElementById("editBorrowerSelect").addEventListener("change", (e) => loadBorrowerIntoEditor(e.target.value));
     document.getElementById("editLoanSelect").addEventListener("change", (e) => loadLoanIntoEditor(e.target.value));
     document.getElementById("editPaymentSelect").addEventListener("change", (e) => loadPaymentIntoEditor(e.target.value));
