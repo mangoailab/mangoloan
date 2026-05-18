@@ -449,6 +449,22 @@
       color: #991b1b;
     }
 
+    .payment-entry-card .field {
+      min-width: 0;
+    }
+
+    .payment-entry-card input,
+    .payment-entry-card select,
+    .payment-entry-card textarea,
+    .payment-entry-card button {
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    .payment-date-field input {
+      width: 100%;
+    }
+
     .payment-notes-field {
       grid-column: span 2;
     }
@@ -516,6 +532,29 @@
       th, td { padding: 12px 10px; }
       table { min-width: 700px; }
       .row-actions button { min-height: 38px; padding: 9px 11px; }
+    }
+
+    @media (max-width: 640px) and (orientation: portrait) {
+      .payment-entry-card .grid-3 {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .payment-date-field,
+      .payment-date-field input {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .payment-date-field input[type="date"] {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      .payment-form-actions button {
+        flex: 1 1 100%;
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -718,7 +757,7 @@
       <div class="grid-3">
         <div class="field"><label>Loan</label><select id="paymentLoan"></select></div>
         <div class="field"><label>Amount</label><input id="paymentAmount" type="number" step="0.01" /></div>
-        <div class="field"><label>Date</label><input id="paymentDate" type="date" /></div>
+        <div class="field payment-date-field"><label>Date</label><input id="paymentDate" type="date" /></div>
       </div>
       <div class="grid-3">
         <div class="field"><label>Method</label>
