@@ -717,28 +717,6 @@
         </div>
       </div>
 
-      <div class="card" style="max-width:760px; margin-bottom:16px;">
-        <h3>Edit Borrower / Portal Login</h3>
-        <p class="small muted" style="margin-top:-6px;">Select a borrower here to create a borrower UID/login, find and link an existing user, or set a temporary password.</p>
-        <div id="editBorrowerPanel">
-          <div class="field"><label>Select Borrower</label><select id="editBorrowerSelect"></select></div>
-          <div class="field"><label>Name</label><input id="editBorrowerName" /></div>
-          <div class="field"><label>Email</label><input id="editBorrowerEmail" /></div>
-          <div class="field"><label>Borrower Portal User ID</label><input id="editBorrowerAuthUserId" placeholder="Supabase Auth user UUID" /></div>
-          <p class="small muted" style="margin-top:-8px;">Use Create Portal User to create and link a Supabase Auth login automatically. Paste a UUID here only when linking an existing user.</p>
-          <div class="row-actions" style="margin-bottom:8px;">
-            <button id="createBorrowerPortalUserBtn" type="button">Create Portal User</button>
-            <button id="linkBorrowerPortalUserBtn" type="button">Find & Link Existing User</button>
-            <button id="setBorrowerPortalPasswordBtn" type="button">Set Temporary Password</button>
-          </div>
-          <p id="borrowerPortalUserResult" class="small muted hidden"></p>
-          <div class="field"><label>Phone</label><input id="editBorrowerPhone" /></div>
-          <div class="field"><label>Zelle</label><input id="editBorrowerZelle" /></div>
-          <div class="field"><label>Notes</label><textarea id="editBorrowerNotes"></textarea></div>
-          <button id="saveBorrowerEditBtn" class="primary">Save Borrower</button>
-        </div>
-      </div>
-
       <div class="card">
         <h3>Borrower List</h3>
         <div id="borrowersGrid" class="borrower-grid"></div>
@@ -1767,16 +1745,35 @@
       }
 
       grid.innerHTML = state.borrowers.map((b) => `
-        <div class="card">
+        <div class="card borrower-card" id="borrowerCard-${b.id}">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <strong>${escapeHtml(b.name)}</strong>
-            <button onclick="editBorrower('${b.id}')">Edit</button>
+            <button type="button" onclick="toggleBorrowerCardEdit('${b.id}')">Edit</button>
           </div>
           <div class="muted">${escapeHtml(b.email || "No email")}</div>
           <div class="muted">${escapeHtml(b.phone || "No phone")}</div>
           <div class="muted">${escapeHtml(b.zelle || "No Zelle")}</div>
           <div class="small muted">Portal: ${b.auth_user_id ? "Linked" : "Not linked"}</div>
           ${b.notes ? `<div class="small muted" style="margin-top:8px;">${escapeHtml(b.notes)}</div>` : ""}
+          <div id="borrowerEditor-${b.id}" class="hidden" style="margin-top:14px;">
+            <div class="field"><label>Name</label><input id="borrowerEditName-${b.id}" value="${escapeHtml(b.name || "")}" /></div>
+            <div class="field"><label>Email</label><input id="borrowerEditEmail-${b.id}" value="${escapeHtml(b.email || "")}" /></div>
+            <div class="field"><label>Borrower Portal User ID</label><input id="borrowerEditAuthUserId-${b.id}" value="${escapeHtml(b.auth_user_id || "")}" placeholder="Supabase Auth user UUID" /></div>
+            <p class="small muted" style="margin-top:-8px;">Use Create Portal User to create and link a Supabase Auth login automatically. Paste a UUID here only when linking an existing user.</p>
+            <div class="row-actions" style="margin-bottom:8px;">
+              <button type="button" onclick="createBorrowerPortalUser('${b.id}', this)" ${b.auth_user_id ? "disabled" : ""}>Create Portal User</button>
+              <button type="button" onclick="linkBorrowerPortalUser('${b.id}', this)" ${b.auth_user_id ? "disabled" : ""}>Find & Link Existing User</button>
+              <button type="button" onclick="setBorrowerPortalPassword('${b.id}', this)" ${b.auth_user_id ? "" : "disabled"}>Set Temporary Password</button>
+            </div>
+            <p id="borrowerPortalUserResult-${b.id}" class="small muted hidden"></p>
+            <div class="field"><label>Phone</label><input id="borrowerEditPhone-${b.id}" value="${escapeHtml(b.phone || "")}" /></div>
+            <div class="field"><label>Zelle</label><input id="borrowerEditZelle-${b.id}" value="${escapeHtml(b.zelle || "")}" /></div>
+            <div class="field"><label>Notes</label><textarea id="borrowerEditNotes-${b.id}">${escapeHtml(b.notes || "")}</textarea></div>
+            <div class="row-actions">
+              <button type="button" class="primary" onclick="saveBorrowerCard('${b.id}')">Save Borrower</button>
+              <button type="button" onclick="toggleBorrowerCardEdit('${b.id}', false)">Cancel</button>
+            </div>
+          </div>
         </div>
       `).join("");
     }
@@ -1870,14 +1867,9 @@
     }
 
     function renderEditOptions() {
-      const borrowerSelect = document.getElementById("editBorrowerSelect");
       const loanSelect = document.getElementById("editLoanSelect");
       const loanBorrower = document.getElementById("editLoanBorrower");
       const paymentSelect = document.getElementById("editPaymentSelect");
-
-      borrowerSelect.innerHTML = '<option value="">Select borrower</option>' + state.borrowers.map((b) => `
-        <option value="${b.id}">${escapeHtml(b.name)}</option>
-      `).join("");
 
       loanBorrower.innerHTML = '<option value="">Select borrower</option>' + state.borrowers.map((b) => `
         <option value="${b.id}">${escapeHtml(b.name)}</option>
@@ -1904,33 +1896,50 @@
       renderEditOptions();
     }
 
-    function loadBorrowerIntoEditor(id) {
-      const b = state.borrowers.find((x) => x.id === id);
-      if (!b) return;
-      document.getElementById("editBorrowerSelect").value = b.id;
-      document.getElementById("editBorrowerName").value = b.name || "";
-      document.getElementById("editBorrowerEmail").value = b.email || "";
-      document.getElementById("editBorrowerAuthUserId").value = b.auth_user_id || "";
-      document.getElementById("editBorrowerPhone").value = b.phone || "";
-      document.getElementById("editBorrowerZelle").value = b.zelle || "";
-      document.getElementById("editBorrowerNotes").value = b.notes || "";
-      const portalResult = document.getElementById("borrowerPortalUserResult");
-      portalResult.textContent = "";
-      portalResult.classList.add("hidden");
-      document.getElementById("createBorrowerPortalUserBtn").disabled = Boolean(b.auth_user_id);
-      document.getElementById("linkBorrowerPortalUserBtn").disabled = Boolean(b.auth_user_id);
-      document.getElementById("setBorrowerPortalPasswordBtn").disabled = !b.auth_user_id;
+    function borrowerCardField(id, field) {
+      return document.getElementById(`borrowerEdit${field}-${id}`);
     }
 
-    async function linkBorrowerPortalUser() {
-      const id = document.getElementById("editBorrowerSelect").value;
-      const email = document.getElementById("editBorrowerEmail").value.trim();
-      const result = document.getElementById("borrowerPortalUserResult");
+    function borrowerCardResult(id) {
+      return document.getElementById(`borrowerPortalUserResult-${id}`);
+    }
+
+    function toggleBorrowerCardEdit(id, force) {
+      const editor = document.getElementById(`borrowerEditor-${id}`);
+      if (!editor) return;
+      const shouldShow = typeof force === "boolean" ? force : editor.classList.contains("hidden");
+      editor.classList.toggle("hidden", !shouldShow);
+    }
+
+    async function saveBorrowerCard(id) {
+      if (!id) return;
+      const payload = {
+        name: borrowerCardField(id, "Name").value.trim(),
+        email: borrowerCardField(id, "Email").value.trim(),
+        auth_user_id: borrowerCardField(id, "AuthUserId").value.trim() || null,
+        phone: borrowerCardField(id, "Phone").value.trim(),
+        zelle: borrowerCardField(id, "Zelle").value.trim(),
+        notes: borrowerCardField(id, "Notes").value.trim()
+      };
+
+      const { error } = await supabaseClient.from("borrowers").update(payload).eq("id", id);
+      if (error) {
+        console.error(error);
+        showMessage("Could not update borrower.");
+        return;
+      }
+
+      await loadAllData();
+      showMessage("Borrower updated.");
+    }
+
+    async function linkBorrowerPortalUser(id, btn) {
+      const email = borrowerCardField(id, "Email").value.trim();
+      const result = borrowerCardResult(id);
       if (!id) return showMessage("Select a borrower first.");
       if (!email) return showMessage("Borrower email is required.");
 
-      const btn = document.getElementById("linkBorrowerPortalUserBtn");
-      btn.disabled = true;
+      if (btn) btn.disabled = true;
       result.textContent = "Finding existing portal user...";
       result.classList.remove("hidden");
 
@@ -1945,28 +1954,28 @@
       if (error || data?.error) {
         console.error(error || data);
         result.textContent = data?.error || error?.message || "Could not link existing portal user.";
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
         showMessage("Could not link existing portal user.");
         return;
       }
 
+      const message = `${data.message || "Existing portal user linked."} Login email: ${data.email}. User ID: ${data.userId}.`;
       await loadAllData();
-      loadBorrowerIntoEditor(id);
-      result.textContent = `${data.message || "Existing portal user linked."} Login email: ${data.email}. User ID: ${data.userId}.`;
-      result.classList.remove("hidden");
+      toggleBorrowerCardEdit(id, true);
+      const freshResult = borrowerCardResult(id);
+      freshResult.textContent = message;
+      freshResult.classList.remove("hidden");
       showMessage("Existing portal user linked.");
     }
 
-    async function setBorrowerPortalPassword() {
-      const id = document.getElementById("editBorrowerSelect").value;
-      const result = document.getElementById("borrowerPortalUserResult");
+    async function setBorrowerPortalPassword(id, btn) {
+      const result = borrowerCardResult(id);
       if (!id) return showMessage("Select a borrower first.");
 
       const borrower = state.borrowers.find((x) => x.id === id);
       if (!borrower?.auth_user_id) return showMessage("Create or link a portal user first.");
 
-      const btn = document.getElementById("setBorrowerPortalPasswordBtn");
-      btn.disabled = true;
+      if (btn) btn.disabled = true;
       result.textContent = "Setting temporary password...";
       result.classList.remove("hidden");
 
@@ -1980,15 +1989,15 @@
       if (error || data?.error) {
         console.error(error || data);
         result.textContent = data?.error || error?.message || "Could not set temporary password.";
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
         showMessage("Could not set temporary password.");
         return;
       }
 
-      const loginEmail = data.email || borrower.email || document.getElementById("editBorrowerEmail").value.trim();
+      const loginEmail = data.email || borrower.email || borrowerCardField(id, "Email").value.trim();
       result.textContent = `Login email: ${loginEmail} | Temporary password: ${data.tempPassword}`;
       result.classList.remove("hidden");
-      btn.disabled = false;
+      if (btn) btn.disabled = false;
       showMessage("Temporary password set.");
     }
 
@@ -2022,29 +2031,28 @@
       return { ok: true, message, data };
     }
 
-    async function createBorrowerPortalUser() {
-      const id = document.getElementById("editBorrowerSelect").value;
-      const email = document.getElementById("editBorrowerEmail").value.trim();
-      const result = document.getElementById("borrowerPortalUserResult");
+    async function createBorrowerPortalUser(id, btn) {
+      const email = borrowerCardField(id, "Email").value.trim();
+      const result = borrowerCardResult(id);
       if (!id) return showMessage("Select a borrower first.");
       if (!email) return showMessage("Borrower email is required.");
 
-      const btn = document.getElementById("createBorrowerPortalUserBtn");
-      btn.disabled = true;
+      if (btn) btn.disabled = true;
       result.textContent = "Creating portal user...";
       result.classList.remove("hidden");
 
       const created = await createPortalUserForBorrower(id, email, result);
       if (!created.ok) {
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
         showMessage("Could not create portal user.");
         return;
       }
 
       await loadAllData();
-      loadBorrowerIntoEditor(id);
-      result.textContent = created.message;
-      result.classList.remove("hidden");
+      toggleBorrowerCardEdit(id, true);
+      const freshResult = borrowerCardResult(id);
+      freshResult.textContent = created.message;
+      freshResult.classList.remove("hidden");
       showMessage("Portal user created and linked.");
     }
 
@@ -2077,7 +2085,7 @@
       document.getElementById("editPaymentPanel").classList.toggle("hidden", type !== "payment");
     }
 
-    function editBorrower(id) { loadBorrowerIntoEditor(id); switchTab("borrowers"); }
+    function editBorrower(id) { switchTab("borrowers"); toggleBorrowerCardEdit(id, true); }
     function editLoan(id) { setEditType("loan"); loadLoanIntoEditor(id); switchTab("edit"); }
     function editPayment(id) { setEditType("payment"); loadPaymentIntoEditor(id); switchTab("edit"); }
 
@@ -2136,6 +2144,11 @@
     }
 
     window.editBorrower = editBorrower;
+    window.toggleBorrowerCardEdit = toggleBorrowerCardEdit;
+    window.saveBorrowerCard = saveBorrowerCard;
+    window.createBorrowerPortalUser = createBorrowerPortalUser;
+    window.linkBorrowerPortalUser = linkBorrowerPortalUser;
+    window.setBorrowerPortalPassword = setBorrowerPortalPassword;
     window.editLoan = editLoan;
     window.editPayment = editPayment;
     window.deleteLoan = deleteLoan;
@@ -2153,37 +2166,8 @@
     document.getElementById("paymentSortSelect").addEventListener("change", renderPayments);
 
     document.getElementById("editTypeSelect").addEventListener("change", (e) => setEditType(e.target.value));
-    document.getElementById("editBorrowerSelect").addEventListener("change", (e) => loadBorrowerIntoEditor(e.target.value));
     document.getElementById("editLoanSelect").addEventListener("change", (e) => loadLoanIntoEditor(e.target.value));
     document.getElementById("editPaymentSelect").addEventListener("change", (e) => loadPaymentIntoEditor(e.target.value));
-    document.getElementById("createBorrowerPortalUserBtn").addEventListener("click", createBorrowerPortalUser);
-    document.getElementById("linkBorrowerPortalUserBtn").addEventListener("click", linkBorrowerPortalUser);
-    document.getElementById("setBorrowerPortalPasswordBtn").addEventListener("click", setBorrowerPortalPassword);
-
-    document.getElementById("saveBorrowerEditBtn").addEventListener("click", async () => {
-      const id = document.getElementById("editBorrowerSelect").value;
-      if (!id) return;
-
-      const payload = {
-        name: document.getElementById("editBorrowerName").value.trim(),
-        email: document.getElementById("editBorrowerEmail").value.trim(),
-        auth_user_id: document.getElementById("editBorrowerAuthUserId").value.trim() || null,
-        phone: document.getElementById("editBorrowerPhone").value.trim(),
-        zelle: document.getElementById("editBorrowerZelle").value.trim(),
-        notes: document.getElementById("editBorrowerNotes").value.trim()
-      };
-
-      const { error } = await supabaseClient.from("borrowers").update(payload).eq("id", id);
-      if (error) {
-        console.error(error);
-        showMessage("Could not update borrower.");
-        return;
-      }
-
-      await loadAllData();
-      loadBorrowerIntoEditor(id);
-      showMessage("Borrower updated.");
-    });
 
     document.getElementById("saveLoanEditBtn").addEventListener("click", async () => {
       const id = document.getElementById("editLoanSelect").value;
